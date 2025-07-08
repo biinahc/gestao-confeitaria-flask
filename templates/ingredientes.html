@@ -81,10 +81,13 @@
                             <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modal-compra-{{ ingrediente.id }}">Registrar Compra</button>
                         </td>
                         <td class="text-end">
-                            <a href="{{ url_for('editar_ingrediente', ingrediente_id=ingrediente.id) }}" class="btn btn-warning btn-sm" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                            
+                            
+                            
+                            
                             <form action="{{ url_for('deletar_ingrediente', ingrediente_id=ingrediente.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza?');"><button type="submit" class="btn btn-danger btn-sm" title="Excluir"><i class="bi bi-trash-fill"></i></button></form>
-                        </td>
-                        <td class="text-end">
+                        
+                    
     <a href="{{ url_for('historico_compras', ingrediente_id=ingrediente.id) }}" class="btn btn-info btn-sm" title="Histórico de Compras">
         <i class="bi bi-clock-history"></i>
     </a>
