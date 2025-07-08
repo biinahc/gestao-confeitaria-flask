@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
 db = SQLAlchemy()
 
@@ -25,6 +26,9 @@ class Ingrediente(db.Model):
 
     # NOVO CAMPO: Armazena o Custo Médio Ponderado por unidade base
     custo_medio_por_unidade_base = db.Column(db.Float, nullable=False, default=0.0)
+
+    #relacionamento de compra nova.
+    compras = db.relationship('Compra', backref='ingrediente', lazy=True, cascade="all, delete-orphan")
 
     def __repr__(self):
         return f'<Ingrediente {self.nome}>'
@@ -108,3 +112,22 @@ class Configuracao(db.Model):
             self.custo_hora_calculado = 0
         
         return self.custo_hora_calculado
+    
+
+    #Informação sobre a compra nova e o registro da compra antiga.
+
+class Compra(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    data_compra = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    preco_total_lote = db.Column(db.Float, nullable=False)
+    unidades_compradas = db.Column(db.Integer, nullable=False)
+    tamanho_unidade = db.Column(db.Float, nullable=False)
+
+    ingrediente_id = db.Column(db.Integer, db.ForeignKey('ingrediente.id'), nullable=False)
+
+    def custo_unitario_base(self):
+        total_comprado = self.tamanho_unidade * self.unidades_compradas
+        if total_comprado > 0:
+            return self.preco_total_lote / total_comprado
+        return 0
+    

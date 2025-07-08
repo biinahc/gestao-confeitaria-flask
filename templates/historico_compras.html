@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Histórico de Compras{% endblock %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Histórico de Compras: <span class="text-primary">{{ ingrediente.nome }}</span></h2>
+        <a href="{{ url_for('gerenciar_ingredientes') }}" class="btn btn-secondary">Voltar para Ingredientes</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Data da Compra</th>
+                        <th>Preço Pago</th>
+                        <th>Unidades</th>
+                        <th>Tamanho/Unid.</th>
+                        <th>Custo Unitário (na compra)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for compra in historico %}
+                    <tr>
+                        <td>{{ compra.data_compra.strftime('%d/%m/%Y') }}</td>
+                        <td>R$ {{ "%.2f"|format(compra.preco_total_lote)|replace('.',',') }}</td>
+                        <td>{{ compra.unidades_compradas }}</td>
+                        <td>{{ compra.tamanho_unidade }} {{ ingrediente.unidade_medida }}</td>
+                        <td>R$ {{ "%.4f"|format(compra.custo_unitario_base())|replace('.',',') }} / {{ ingrediente.unidade_medida }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center">Nenhum histórico de compra para este item.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
