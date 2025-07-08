@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar Ingrediente{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Editar Ingrediente: {{ ingrediente.nome }}</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label for="nome" class="form-label">Nome do Ingrediente</label>
+                <input type="text" class="form-control" name="nome" value="{{ ingrediente.nome }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="marca" class="form-label">Marca</label>
+                <input type="text" class="form-control" name="marca" value="{{ ingrediente.marca or '' }}">
+            </div>
+            <p class="text-muted small">Nota: Detalhes de preço e quantidade representam uma compra e não podem ser editados. Para corrigir uma compra, exclua e cadastre novamente. Para adicionar mais estoque, use a tela principal de ingredientes.</p>
+            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+            <a href="{{ url_for('gerenciar_ingredientes') }}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

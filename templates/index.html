@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Confeitando com Artes{% endblock %}
+
+{% block content %}
+    <div class="container-fluid py-5" style="background-color: #f3e8ff; min-height: 80vh;">
+        <div class="row justify-content-center text-center mb-5">
+            <div class="col-md-8">
+               <img src="{{ url_for('static', filename='images/logo_segundo.png') }}"  class="img-fluid mb-4" style="max-width: 200px; border-radius: 50%;">
+                <h1 class="display-4">Bem-vinda Edneuza Pereira </h1>
+                <p class="lead text-muted">Seu sistema de gestão para a Confeitando com Artes.</p>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                        <i class="bi bi-box-seam-fill text-primary mb-2" style="font-size: 2.5em;"></i>
+                        <h5 class="card-title">Ingredientes</h5>
+                        <p class="card-text small text-muted">Controle seu estoque de matérias-primas.</p>
+                        <a href="{{ url_for('gerenciar_ingredientes') }}" class="btn btn-primary btn-sm mt-auto">Acessar</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                        <i class="bi bi-journal-text text-info mb-2" style="font-size: 2.5em;"></i>
+                        <h5 class="card-title">Fichas Técnicas</h5>
+                        <p class="card-text small text-muted">Crie e edite suas receitas detalhadas.</p>
+                        <a href="{{ url_for('gerenciar_fichas_tecnicas') }}" class="btn btn-info btn-sm mt-auto">Acessar</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                        <i class="bi bi-rulers text-success mb-2" style="font-size: 2.5em;"></i>
+                        <h5 class="card-title">Formas</h5>
+                        <p class="card-text small text-muted">Cadastre e organize suas formas de bolo.</p>
+                        <a href="{{ url_for('gerenciar_formas') }}" class="btn btn-success btn-sm mt-auto">Acessar</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                        <i class="bi bi-gear-fill text-secondary mb-2" style="font-size: 2.5em;"></i>
+                        <h5 class="card-title">Configurações</h5>
+                        <p class="card-text small text-muted">Ajuste seus custos de produção.</p>
+                        <a href="{{ url_for('gerenciar_configuracoes') }}" class="btn btn-secondary btn-sm mt-auto">Acessar</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if labels_grafico and dados_grafico %}
+        <div class="row justify-content-center mt-4">
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <i class="bi bi-bar-chart-fill text-muted me-2"></i> Top 10 Ingredientes em Estoque
+                    </div>
+                    <div class="card-body">
+                        <canvas id="estoqueChart"
+                                data-labels="{{ labels_grafico|tojson|safe }}"
+                                data-dados="{{ dados_grafico|tojson|safe }}">
+                        </canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verifica se o gráfico existe na página
+            const estoqueCanvas = document.getElementById('estoqueChart');
+            if (estoqueCanvas) {
+                // Pega os dados dos atributos 'data-*' e converte de texto JSON para arrays JavaScript
+                const labels = JSON.parse(estoqueCanvas.dataset.labels || '[]');
+                const dados = JSON.parse(estoqueCanvas.dataset.dados || '[]');
+                
+                const estoqueCtx = estoqueCanvas.getContext('2d');
+                
+                new Chart(estoqueCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Quantidade em Estoque (unidade base)',
+                            data: dados,
+                            backgroundColor: 'rgba(169, 137, 224, 0.6)',
+                            borderColor: 'rgba(169, 137, 224, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', // Deixa o gráfico na horizontal para melhor leitura dos nomes
+                        scales: {
+                            x: {
+                                beginAtZero: true
+                            }
+                        },
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Configurações de Custo{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">Configurações de Custo</h2>
+
+    <div class="alert alert-primary text-center" role="alert">
+        <h4 class="alert-heading">Seu Custo de Hora de Trabalho é:</h4>
+        <p class="display-4 fw-bold">R$ {{ "%.2f"|format(config.custo_hora_calculado or 0)|replace('.', ',') }}</p>
+        <hr>
+        <p class="mb-0">Este valor é usado para calcular o custo da mão de obra em cada ficha técnica.</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            Calculadora de Custo da Hora
+        </div>
+        <div class="card-body">
+            <p class="text-muted">Preencha os campos abaixo com suas estimativas mensais. O sistema calculará seu custo/hora automaticamente.</p>
+            <form method="POST">
+                <h5 class="mt-4">Custos Mensais (Estimativa)</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="salario_desejado" class="form-label">Seu Salário Desejado (R$)</label>
+                        <input type="number" step="0.01" class="form-control" name="salario_desejado" value="{{ config.salario_desejado or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="custo_gas" class="form-label">Gás (R$)</label>
+                        <input type="number" step="0.01" class="form-control" name="custo_gas" value="{{ config.custo_gas or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="custo_luz" class="form-label">Luz (R$)</label>
+                        <input type="number" step="0.01" class="form-control" name="custo_luz" value="{{ config.custo_luz or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="custo_agua" class="form-label">Água (R$)</label>
+                        <input type="number" step="0.01" class="form-control" name="custo_agua" value="{{ config.custo_agua or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="custo_outros" class="form-label">Outros Custos (Internet, etc.) (R$)</label>
+                        <input type="number" step="0.01" class="form-control" name="custo_outros" value="{{ config.custo_outros or '' }}">
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <h5 class="mt-4">Sua Jornada de Trabalho</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="horas_por_dia" class="form-label">Horas Trabalhadas por Dia</label>
+                        <input type="number" step="0.1" class="form-control" name="horas_por_dia" value="{{ config.horas_por_dia or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="dias_por_semana" class="form-label">Dias Trabalhados por Semana</label>
+                        <input type="number" class="form-control" name="dias_por_semana" value="{{ config.dias_por_semana or '' }}">
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success btn-lg">Salvar e Recalcular Custo da Hora</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

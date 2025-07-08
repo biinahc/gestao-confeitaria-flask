@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Gerenciar Formas{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">Gerenciar Formas</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header">Adicionar Nova Forma</div>
+        <div class="card-body">
+            <form action="{{ url_for('gerenciar_formas') }}" method="POST">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="descricao" placeholder="Ex: Forma Redonda 20cm x 10cm" required>
+                    <button class="btn btn-primary" type="submit">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Formas Cadastradas</div>
+        <ul class="list-group list-group-flush">
+            {% for forma in formas %}
+                <li class="list-group-item">{{ forma.descricao }}</li>
+            {% else %}
+                <li class="list-group-item text-center">Nenhuma forma cadastrada.</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

@@ -1,0 +1,22 @@
+/* Deixa o rodapé fixo na parte inferior da página */
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1;
+}
+
+/* Pequeno ajuste no branding da navbar */
+.navbar-brand {
+    font-weight: bold;
+}
+
+
+    .card:hover {
+        transform: scale(1.05);
+        transition: transform 0.3s ease-in-out;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }

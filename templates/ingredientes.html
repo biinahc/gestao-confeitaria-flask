@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Gerenciar Ingredientes{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">Gerenciar Ingredientes</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header">Adicionar Novo Ingrediente</div>
+        <div class="card-body">
+            <form action="{{ url_for('gerenciar_ingredientes') }}" method="POST">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6"><label for="nome" class="form-label">Nome do Ingrediente</label><input type="text" class="form-control" name="nome" required></div>
+                    <div class="col-md-6"><label for="marca" class="form-label">Marca (Opcional)</label><input type="text" class="form-control" name="marca"></div>
+                </div>
+
+                <hr>
+                <p class="text-muted small mt-3">Preencha os detalhes da sua compra. Passe o mouse sobre as opções de preço para ver a dica.</p>
+                
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Como informar o preço?</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="tipo_preco" id="preco_total" value="total" checked>
+                            <label class="form-check-label" for="preco_total" data-bs-toggle="tooltip" data-bs-placement="right" title="Use para um lote de itens. Ex: Pagou R$ 20,00 por uma cartela com 30 ovos.">
+                                Preço Total da Compra
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="tipo_preco" id="preco_unitario" value="unitario">
+                            <label class="form-check-label" for="preco_unitario" data-bs-toggle="tooltip" data-bs-placement="right" title="Use para vários itens iguais. Ex: Pagou R$ 5,30 em cada um dos 10 pacotes de açúcar.">
+                                Preço por Unidade
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2"><label for="preco" class="form-label">Preço (R$)</label><input type="number" step="0.01" min="0" class="form-control" name="preco" required></div>
+                    <div class="col-md-2"><label for="unidades_compradas" class="form-label">Unidades Compradas</label><input type="number" min="1" class="form-control" id="unidades_compradas" name="unidades_compradas" value="1" required></div>
+                    <div class="col-md-2"><label for="tamanho_unidade" class="form-label" id="label_tamanho_unidade">Tamanho por Unidade</label><input type="number" step="0.01" min="0" class="form-control" name="tamanho_unidade" required></div>
+                    <div class="col-md-2">
+                        <label for="unidade_medida" class="form-label">Unidade de Medida</label>
+                        <select class="form-select" name="unidade_medida" required>
+                            <option value="g">Gramas (g)</option>
+                            <option value="ml">Mililitros (ml)</option>
+                            <option value="unid">Unidade(s)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="col-12 mt-4"><button type="submit" class="btn btn-primary">Adicionar Novo Ingrediente</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">Estoque Atual
+            <div class="input-group" style="width: 300px;"><span class="input-group-text">🔍</span><input type="text" id="caixaDeBusca" class="form-control" placeholder="Procurar ingrediente..."></div>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Estoque Atual</th>
+                        <th>Custo Médio</th>
+                        <th>Registrar Nova Compra</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-ingredientes">
+                    {% for ingrediente in ingredientes %}
+                    <tr>
+                        <td><strong>{{ ingrediente.nome }}</strong><br><small class="text-muted">{{ ingrediente.marca or '' }}</small></td>
+                        <td><span class="badge bg-primary fs-6">{{ ingrediente.quantidade_estoque|round(2) }} {{ ingrediente.unidade_medida }}</span></td>
+                        <td>R$ {{ "%.4f"|format(ingrediente.preco_por_unidade())|replace('.', ',') }} / {{ ingrediente.unidade_medida }}</td>
+                        <td>
+                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modal-compra-{{ ingrediente.id }}">
+                                Registrar Compra
+                            </button>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('editar_ingrediente', ingrediente_id=ingrediente.id) }}" class="btn btn-warning btn-sm" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                            <form action="{{ url_for('deletar_ingrediente', ingrediente_id=ingrediente.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza?');"><button type="submit" class="btn btn-danger btn-sm" title="Excluir"><i class="bi bi-trash-fill"></i></button></form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center">Nenhum ingrediente cadastrado ainda.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% for ingrediente in ingredientes %}
+    <div class="modal fade" id="modal-compra-{{ ingrediente.id }}" tabindex="-1" aria-labelledby="modalLabel-{{ ingrediente.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalLabel-{{ ingrediente.id }}">Registrar Nova Compra para: {{ ingrediente.nome }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('adicionar_estoque', ingrediente_id=ingrediente.id) }}" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="preco_lote" class="form-label">Preço Total Pago pelo Lote (R$)</label>
+                            <input type="number" step="0.01" min="0" name="preco_lote" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="unidades_lote" class="form-label">Unidades Compradas no Lote</label>
+                            <input type="number" min="1" name="unidades_lote" class="form-control" value="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tamanho_unidade_lote" class="form-label">Tamanho por Unidade (na unidade base: {{ ingrediente.unidade_medida }})</label>
+                            <input type="number" step="0.01" min="0" name="tamanho_unidade_lote" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Adicionar Estoque</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Lógica da busca
+            const caixaDeBusca = document.getElementById('caixaDeBusca');
+            if(caixaDeBusca) {
+                const tabelaIngredientes = document.getElementById('tabela-ingredientes');
+                const linhas = tabelaIngredientes.getElementsByTagName('tr');
+                caixaDeBusca.addEventListener('keyup', function() {
+                    const termoBusca = caixaDeBusca.value.toLowerCase();
+                    for (let i = 0; i < linhas.length; i++) {
+                        const textoLinha = linhas[i].textContent.toLowerCase();
+                        if (textoLinha.includes(termoBusca)) {
+                            linhas[i].style.display = '';
+                        } else {
+                            linhas[i].style.display = 'none';
+                        }
+                    }
+                });
+            }
+
+            // Lógica para o formulário dinâmico
+            const tipoPrecoTotalRadio = document.getElementById('preco_total');
+            const tipoPrecoUnitarioRadio = document.getElementById('preco_unitario');
+            const labelTamanhoUnidade = document.getElementById('label_tamanho_unidade');
+
+            function ajustarFormulario() {
+                if (tipoPrecoTotalRadio.checked) {
+                    labelTamanhoUnidade.textContent = 'Tamanho Total do Lote';
+                } else {
+                    labelTamanhoUnidade.textContent = 'Tamanho por Unidade';
+                }
+            }
+            if(tipoPrecoTotalRadio) {
+                tipoPrecoTotalRadio.addEventListener('change', ajustarFormulario);
+                tipoPrecoUnitarioRadio.addEventListener('change', ajustarFormulario);
+                ajustarFormulario();
+            }
+        });
+    </script>
+{% endblock %}
