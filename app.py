@@ -4,6 +4,7 @@ import openpyxl
 from openpyxl.styles import Font, Alignment
 from flask import Flask, render_template, request, redirect, url_for, flash, Response
 from models import db, Ingrediente, FichaTecnica, FichaTecnicaIngrediente, Forma, Configuracao
+from sqlalchemy import or_, and_
 
 
 # --- Configuração Inicial ---
@@ -22,50 +23,67 @@ def init_db_command():
 
 @app.route('/')
 def index():
-    ingredientes_estoque = Ingrediente.query.order_by(Ingrediente.quantidade_estoque.desc()).limit(10).all()
-    labels_grafico = [ing.nome for ing in ingredientes_estoque]
-    dados_grafico = [ing.quantidade_estoque for ing in ingredientes_estoque]
+    """Página Inicial / Dashboard com Gráfico e Alertas de Estoque"""
+    # Lógica para o Gráfico (continua igual)
+    ingredientes_estoque_grafico = Ingrediente.query.order_by(Ingrediente.quantidade_estoque.desc()).limit(10).all()
+    labels_grafico = [ing.nome for ing in ingredientes_estoque_grafico]
+    dados_grafico = [ing.quantidade_estoque for ing in ingredientes_estoque_grafico]
     total_fichas = FichaTecnica.query.count()
-    return render_template('index.html', total_fichas=total_fichas, labels_grafico=labels_grafico, dados_grafico=dados_grafico)
 
+    # --- NOVA LÓGICA PARA BUSCAR ITENS COM ESTOQUE BAIXO ---
+    # As mesmas regras de cores que usamos antes
+    condicao_critica = or_(
+        and_(Ingrediente.unidade_medida.in_(['g', 'ml']), Ingrediente.quantidade_estoque <= 100),
+        and_(Ingrediente.unidade_medida == 'unid', Ingrediente.quantidade_estoque <= 5)
+    )
+    condicao_alerta = or_(
+        and_(Ingrediente.unidade_medida.in_(['g', 'ml']), Ingrediente.quantidade_estoque > 100, Ingrediente.quantidade_estoque <= 500),
+        and_(Ingrediente.unidade_medida == 'unid', Ingrediente.quantidade_estoque > 5, Ingrediente.quantidade_estoque <= 15)
+    )
+    
+    # Busca todos os ingredientes que se encaixam em qualquer uma das condições
+    ingredientes_pouco_estoque = Ingrediente.query.filter(
+        or_(condicao_critica, condicao_alerta)
+    ).order_by(Ingrediente.quantidade_estoque.asc()).all()
+    
+    # Passamos a nova lista para o template
+    return render_template('index.html', 
+                           total_fichas=total_fichas,
+                           labels_grafico=labels_grafico,
+                           dados_grafico=dados_grafico,
+                           alertas_estoque=ingredientes_pouco_estoque)
 # Em app.py
 
 @app.route('/ingredientes', methods=['GET', 'POST'])
 def gerenciar_ingredientes():
-    """Página para listar ingredientes e registrar a PRIMEIRA compra."""
     if request.method == 'POST':
+        # A lógica para ADICIONAR um ingrediente continua a mesma
         nome = request.form['nome'].strip()
         if Ingrediente.query.filter(db.func.lower(Ingrediente.nome) == db.func.lower(nome)).first():
-            flash(f'Erro: O ingrediente "{nome}" já está cadastrado. Adicione mais estoque na lista abaixo.', 'danger')
+            flash(f'Erro: O ingrediente "{nome}" já está cadastrado.', 'danger')
             return redirect(url_for('gerenciar_ingredientes'))
 
-        # Coleta dos dados da primeira compra
         tipo_preco = request.form['tipo_preco']
         preco_informado = float(request.form.get('preco', 0) or 0)
         unidades_compradas = int(request.form.get('unidades_compradas', 1) or 1)
         tamanho_unidade = float(request.form.get('tamanho_unidade', 0) or 0)
-        unidade_medida = request.form['unidade_medida']
 
-        # Calcula o preço total e o estoque inicial
         if tipo_preco == 'total':
             preco_total_pago = preco_informado
-        else: # tipo_preco == 'unitario'
+        else:
             preco_total_pago = preco_informado * unidades_compradas
         
         estoque_inicial = tamanho_unidade * unidades_compradas
-
-        # --- CORREÇÃO DO BUG: Calcula o custo médio inicial ---
         custo_inicial = 0
         if estoque_inicial > 0:
             custo_inicial = preco_total_pago / estoque_inicial
-        # --- FIM DA CORREÇÃO ---
         
         novo_ingrediente = Ingrediente(
             nome=nome,
             marca=request.form['marca'],
-            unidade_medida=unidade_medida,
+            unidade_medida=request.form['unidade_medida'],
             quantidade_estoque=estoque_inicial,
-            custo_medio_por_unidade_base=custo_inicial # Salva o custo médio correto
+            custo_medio_por_unidade_base=custo_inicial
         )
         
         db.session.add(novo_ingrediente)
@@ -73,8 +91,20 @@ def gerenciar_ingredientes():
         flash(f'Ingrediente "{nome}" cadastrado com sucesso!', 'success')
         return redirect(url_for('gerenciar_ingredientes'))
 
-    ingredientes = Ingrediente.query.order_by(Ingrediente.nome).all()
-    return render_template('ingredientes.html', ingredientes=ingredientes)
+    # --- LÓGICA DE PAGINAÇÃO (MUDANÇA AQUI) ---
+    # 1. Pega o número da página da URL (ex: /ingredientes?page=2), o padrão é 1.
+    page = request.args.get('page', 1, type=int)
+    
+    # 2. Em vez de .all(), usamos .paginate()
+    paginacao = Ingrediente.query.order_by(Ingrediente.nome).paginate(
+        page=page, per_page=10, error_out=False
+    )
+    
+    # 3. Os itens da página atual estão em paginacao.items
+    ingredientes_da_pagina = paginacao.items
+    
+    # 4. Passamos o objeto de paginação completo para o template
+    return render_template('ingredientes.html', ingredientes=ingredientes_da_pagina, paginacao=paginacao)
 
 
 
