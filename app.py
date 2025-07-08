@@ -5,8 +5,7 @@ import openpyxl
 from openpyxl.styles import Font, Alignment
 from flask import Flask, render_template, request, redirect, url_for, flash, Response
 from sqlalchemy import or_, and_
-from models import db, Ingrediente, FichaTecnica, FichaTecnicaIngrediente, Forma, Configuracao, Compra
-
+from models import db, Ingrediente, FichaTecnica, FichaTecnicaIngrediente, Forma, Configuracao, Venda, Compra
 # --- Configuração Inicial ---
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///confeitando_com_artes.db'
@@ -154,13 +153,43 @@ def gerenciar_configuracoes():
 @app.route('/fichas-tecnicas', methods=['GET', 'POST'])
 def gerenciar_fichas_tecnicas():
     if request.method == 'POST':
-        nova_ficha = FichaTecnica(nome=request.form['nome'], rendimento=request.form['rendimento'], observacoes=request.form['observacoes'])
+        # A lógica para CRIAR uma nova ficha continua a mesma
+        nova_ficha = FichaTecnica(
+            nome=request.form['nome'], 
+            rendimento=request.form['rendimento'], 
+            observacoes=request.form['observacoes']
+        )
         db.session.add(nova_ficha)
         db.session.commit()
         flash('Ficha Técnica criada com sucesso!', 'success')
         return redirect(url_for('gerenciar_fichas_tecnicas'))
-    fichas_tecnicas = FichaTecnica.query.order_by(FichaTecnica.nome).all()
-    return render_template('fichas_tecnicas.html', fichas_tecnicas=fichas_tecnicas)
+    
+    # --- NOVA LÓGICA DE BUSCA E PAGINAÇÃO ---
+    
+    # 1. Pega os parâmetros da URL
+    page = request.args.get('page', 1, type=int)
+    q = request.args.get('q', '', type=str) # 'q' é nosso termo de busca
+    
+    # 2. Inicia a consulta base
+    query = FichaTecnica.query
+
+    # 3. Se houver um termo de busca, filtra os resultados
+    if q:
+        # Usamos 'ilike' para uma busca case-insensitive que contém o termo
+        query = query.filter(FichaTecnica.nome.ilike(f'%{q}%'))
+
+    # 4. Ordena e aplica a paginação na consulta final
+    paginacao = query.order_by(FichaTecnica.nome).paginate(
+        page=page, per_page=5, error_out=False # 5 itens por página, como solicitado
+    )
+    
+    fichas_da_pagina = paginacao.items
+    
+    # 5. Passa os dados para o template, incluindo o termo de busca 'q'
+    return render_template('fichas_tecnicas.html', 
+                           fichas_tecnicas=fichas_da_pagina, 
+                           paginacao=paginacao,
+                           q=q)
 
 @app.route('/ficha-tecnica/<int:ficha_tecnica_id>', methods=['GET', 'POST'])
 def detalhe_ficha_tecnica(ficha_tecnica_id):
@@ -291,6 +320,61 @@ def exportar_ficha_tecnica(ficha_tecnica_id):
     filename = f"Ficha_Tecnica_{ficha.nome.replace(' ', '_')}.xlsx"
     return Response(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     headers={'Content-Disposition': f'attachment;filename={filename}'})
+
+
+
+
+#vendas
+
+# Em app.py
+
+@app.route('/vendas', methods=['GET', 'POST'])
+def gerenciar_vendas():
+    if request.method == 'POST':
+        fichatecnica_id = request.form.get('fichatecnica_id')
+        quantidade = int(request.form.get('quantidade', 1))
+        preco_venda = float(request.form.get('preco_venda_final', 0))
+        
+        if not fichatecnica_id or preco_venda <= 0:
+            flash('Por favor, selecione uma ficha e insira um preço de venda válido.', 'warning')
+            return redirect(url_for('gerenciar_vendas'))
+
+        ficha = FichaTecnica.query.get(fichatecnica_id)
+        if not ficha:
+            flash('Ficha Técnica não encontrada.', 'danger')
+            return redirect(url_for('gerenciar_vendas'))
+
+        # Calcula o custo e lucro para a quantidade vendida
+        custo_total_da_venda = ficha.custo_total() * quantidade
+        lucro = preco_venda - custo_total_da_venda
+
+        nova_venda = Venda(
+            fichatecnica_id=fichatecnica_id,
+            quantidade=quantidade,
+            preco_venda_final=preco_venda,
+            custo_producao_total=custo_total_da_venda,
+            lucro_calculado=lucro
+        )
+        db.session.add(nova_venda)
+        db.session.commit()
+        flash('Venda registrada com sucesso!', 'success')
+        return redirect(url_for('gerenciar_vendas'))
+
+    # Lógica para exibir a página
+    fichas_tecnicas = FichaTecnica.query.order_by(FichaTecnica.nome).all()
+    vendas = Venda.query.order_by(Venda.data_venda.desc()).all()
+    
+    # Calcula os totais para o dashboard
+    faturamento_total = sum(v.preco_venda_final for v in vendas)
+    custo_total = sum(v.custo_producao_total for v in vendas)
+    lucro_total = sum(v.lucro_calculado for v in vendas)
+
+    return render_template('vendas.html', 
+                           fichas_tecnicas=fichas_tecnicas, 
+                           vendas=vendas,
+                           faturamento_total=faturamento_total,
+                           custo_total=custo_total,
+                           lucro_total=lucro_total)
 
 
 if __name__ == '__main__':

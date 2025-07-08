@@ -2,42 +2,67 @@
 {% block title %}Gerenciar Fichas Técnicas{% endblock %}
 {% block content %}
     <h2 class="mb-4">Gerenciar Fichas Técnicas</h2>
+    
     <div class="card mb-4">
         <div class="card-header">Criar Nova Ficha Técnica</div>
         <div class="card-body">
             <form action="{{ url_for('gerenciar_fichas_tecnicas') }}" method="POST">
-                <div class="mb-3"><label for="nome" class="form-label">Nome da Ficha (Ex: Massa Branca, Recheio de Ninho)</label><input type="text" class="form-control" id="nome" name="nome" required></div>
-                <div class="mb-3"><label for="rendimento" class="form-label">Rendimento (Ex: 1 bolo de 2kg)</label><input type="text" class="form-control" id="rendimento" name="rendimento"></div>
-                <div class="mb-3"><label for="observacoes" class="form-label">Observações</label><textarea class="form-control" id="observacoes" name="observacoes" rows="2"></textarea></div>
+                <div class="mb-3"><label for="nome" class="form-label">Nome da Ficha (Ex: Massa Branca, Recheio de Ninho)</label><input type="text" class="form-control" name="nome" required></div>
+                <div class="mb-3"><label for="rendimento" class="form-label">Rendimento (Ex: 1 bolo de 2kg)</label><input type="text" class="form-control" name="rendimento"></div>
+                <div class="mb-3"><label for="observacoes" class="form-label">Observações</label><textarea class="form-control" name="observacoes" rows="2"></textarea></div>
                 <button type="submit" class="btn btn-success">Criar Ficha</button>
-            
             </form>
         </div>
     </div>
-    <div class="card">
-        <div class="card-header">Fichas Técnicas Cadastradas</div>
-       <ul class="list-group list-group-flush">
-    {% for ficha in fichas_tecnicas %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            <a href="{{ url_for('detalhe_ficha_tecnica', ficha_tecnica_id=ficha.id) }}" class="text-decoration-none text-dark fw-bold">
-                {{ ficha.nome }}
-            </a>
-            <div>
-                <span class="badge bg-danger rounded-pill me-2">
-                    Custo: R$ {{ "%.2f"|format(ficha.custo_total()) }}
-                </span>
-                
-                <form action="{{ url_for('deletar_ficha_tecnica', ficha_tecnica_id=ficha.id) }}" method="POST" class="d-inline">
-                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Tem certeza que deseja apagar a ficha \'{{ ficha.nome }}\'?');">
-                        Excluir
-                    </button>
-                </form>
 
-            </div>
-        </li>
-    {% else %}
-        <li class="list-group-item text-center">Nenhuma ficha técnica criada ainda.</li>
-    {% endfor %}
-</ul>
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            Fichas Técnicas Cadastradas
+            <form method="GET" action="{{ url_for('gerenciar_fichas_tecnicas') }}" class="d-flex">
+                <input type="search" name="q" class="form-control me-2" placeholder="Procurar por nome..." value="{{ q or '' }}">
+                <button class="btn btn-outline-primary" type="submit">Buscar</button>
+            </form>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for ficha in fichas_tecnicas %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{{ url_for('detalhe_ficha_tecnica', ficha_tecnica_id=ficha.id) }}" class="text-decoration-none text-dark fw-bold">
+                    {{ ficha.nome }}
+                </a>
+                <div>
+                    <span class="badge bg-danger rounded-pill me-2">Custo: R$ {{ "%.2f"|format(ficha.custo_total())|replace('.',',') }}</span>
+                    <form action="{{ url_for('deletar_ficha_tecnica', ficha_tecnica_id=ficha.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja apagar a ficha \'{{ ficha.nome }}\'?');">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Excluir</button>
+                    </form>
+                </div>
+            </li>
+            {% else %}
+            <li class="list-group-item text-center">Nenhuma ficha técnica encontrada.</li>
+            {% endfor %}
+        </ul>
+
+        {% if paginacao and paginacao.pages > 1 %}
+        <div class="card-footer d-flex justify-content-center">
+            <nav aria-label="Navegação das fichas técnicas">
+                <ul class="pagination mb-0">
+                    <li class="page-item {% if not paginacao.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('gerenciar_fichas_tecnicas', page=paginacao.prev_num, q=q) }}">Anterior</a>
+                    </li>
+                    {% for page_num in paginacao.iter_pages() %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == paginacao.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('gerenciar_fichas_tecnicas', page=page_num, q=q) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not paginacao.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('gerenciar_fichas_tecnicas', page=paginacao.next_num, q=q) }}">Próxima</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
 {% endblock %}

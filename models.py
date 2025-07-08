@@ -50,6 +50,8 @@ class FichaTecnica(db.Model):
     
     formas = db.relationship('Forma', secondary=fichatecnica_forma_association, lazy='subquery',
         backref=db.backref('fichas_tecnicas', lazy=True))
+    
+    vendas = db.relationship('Venda', backref='ficha_tecnica', lazy=True)
 
     # --- MÉTODOS DE CÁLCULO QUE PRECISAM ESTAR AQUI ---
     def custo_ingredientes(self):
@@ -131,3 +133,21 @@ class Compra(db.Model):
             return self.preco_total_lote / total_comprado
         return 0
     
+
+
+#nova classe Venda
+
+class Venda(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    data_venda = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    quantidade = db.Column(db.Integer, nullable=False, default=1)
+    preco_venda_final = db.Column(db.Float, nullable=False)
+    
+    # Congelamos o custo e o lucro no momento da venda
+    custo_producao_total = db.Column(db.Float, nullable=False)
+    lucro_calculado = db.Column(db.Float, nullable=False)
+
+    # Chave estrangeira para saber qual Ficha Técnica foi vendida
+    fichatecnica_id = db.Column(db.Integer, db.ForeignKey('ficha_tecnica.id'), nullable=False)
+
+
