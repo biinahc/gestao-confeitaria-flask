@@ -196,6 +196,7 @@ def detalhe_ficha_tecnica(ficha_tecnica_id):
     ficha = FichaTecnica.query.get_or_404(ficha_tecnica_id)
     todos_ingredientes = Ingrediente.query.order_by(Ingrediente.nome).all()
     todas_formas = Forma.query.order_by(Forma.descricao).all()
+
     if request.method == 'POST':
         if 'ingrediente_id' in request.form:
             ingrediente_id = request.form.get('ingrediente_id')
@@ -218,8 +219,21 @@ def detalhe_ficha_tecnica(ficha_tecnica_id):
             db.session.commit()
             flash('Ficha Técnica atualizada com sucesso!', 'info')
         return redirect(url_for('detalhe_ficha_tecnica', ficha_tecnica_id=ficha.id))
-    return render_template('ficha_tecnica_detalhe.html', ficha=ficha, todos_ingredientes=todos_ingredientes, todas_formas=todas_formas)
-
+# --- NOVA LÓGICA DE PAGINAÇÃO PARA OS INGREDIENTES DA FICHA ---
+    # Usamos 'page_ing' para não conflitar com outras paginações
+    page_ing = request.args.get('page_ing', 1, type=int)
+    
+    # Criamos uma consulta paginada para os ingredientes *desta* ficha
+    paginacao_ingredientes = FichaTecnicaIngrediente.query.filter_by(fichatecnica_id=ficha.id).paginate(
+        page=page_ing, per_page=5, error_out=False # 5 ingredientes por página
+    )
+    
+    # Passamos o objeto de paginação para o template
+    return render_template('ficha_tecnica_detalhe.html', 
+                           ficha=ficha, 
+                           todos_ingredientes=todos_ingredientes, 
+                           todas_formas=todas_formas,
+                           paginacao_ingredientes=paginacao_ingredientes)
 @app.route('/ficha-tecnica/produzir/<int:ficha_tecnica_id>', methods=['POST'])
 def produzir_ficha_tecnica(ficha_tecnica_id):
     ficha = FichaTecnica.query.get_or_404(ficha_tecnica_id)
