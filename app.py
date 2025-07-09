@@ -384,5 +384,29 @@ def gerenciar_vendas():
     lucro_total = sum(v.lucro_calculado for v in vendas)
     return render_template('vendas.html', fichas_tecnicas=fichas_tecnicas, vendas=vendas, faturamento_total=faturamento_total, custo_total=custo_total, lucro_total=lucro_total)
 
+
+# Em app.py
+
+@app.route('/criar-primeiro-usuario-secreto-12345')
+def criar_primeiro_usuario():
+    # Verifica se já existe algum usuário
+    if User.query.first():
+        return 'Um usuário já existe. Esta rota não fará nada.'
+    
+    # Crie aqui o usuário com um nome e senha padrão
+    username = 'confeitandocomartes'
+    password = '280588'
+    
+    new_user = User(username=username)
+    new_user.set_password(password)
+    db.session.add(new_user)
+    db.session.commit()
+    
+    return f'Usuário "{username}" criado com sucesso! Por segurança, remova esta rota do seu app.py agora.'
+
+
+
+
+
 if __name__ == '__main__':
     app.run(debug=True)
