@@ -1,30 +1,40 @@
 # 🍰 Doce Controle - Sistema de Gestão para Confeitaria
 
-Um sistema de gestão completo desenvolvido em Python com Flask, criado especialmente para a confeitaria "Confeitando com Artes" da minha sogra, Edneuza Pereira. O objetivo é simplificar o controle financeiro e de produção, desde o custo dos ingredientes até o preço final de venda.
+Um sistema de gestão completo desenvolvido em Python com Flask, criado especialmente para a confeitaria "Confeitando com Artes" da minha sogra, Edneuza Pereira. O objetivo é profissionalizar e simplificar o controle financeiro e de produção, desde o custo dos ingredientes até a geração de orçamentos para clientes.
 
-## ✨ Funcionalidades
+O projeto está online e funcionando, hospedado na plataforma Render.
 
-O "Doce Controle" oferece um conjunto de ferramentas para gerenciar uma confeitaria artesanal de forma eficiente:
+## ✨ Funcionalidades Implementadas
 
-* **Gestão de Ingredientes:** Cadastro de ingredientes e controle de estoque com cálculo de **Custo Médio Ponderado**, garantindo que o preço seja sempre atualizado conforme novas compras são feitas.
-* **Fichas Técnicas Detalhadas:** Criação de receitas (fichas técnicas) com lista de ingredientes, modo de preparo, rendimento e associação com formas de bolo.
-* **Cálculo de Custos Profissional:**
-    * Cálculo automático do custo total dos ingredientes por ficha.
-    * Calculadora de **Custo da Hora de Trabalho** baseada em custos fixos (gás, luz, água) e pró-labore.
-    * Opção de incluir ou não o custo da mão de obra em cada ficha técnica.
-* **Controle de Produção:** Funcionalidade para "Produzir" uma ficha técnica, com validação de estoque e baixa automática dos ingredientes utilizados.
-* **Precificação Inteligente:** Calculadora interativa de preço de venda baseada no custo total de produção e na margem de lucro desejada.
-* **Relatórios e Exportação:** Exportação de Fichas Técnicas detalhadas para planilhas Excel (`.xlsx`).
-* **Interface Amigável:** Busca instantânea na lista de ingredientes e interface limpa e organizada.
+O "Doce Controle" é uma ferramenta robusta que oferece um conjunto completo de funcionalidades para gerenciar uma confeitaria artesanal de forma eficiente:
+
+#### Gestão Financeira e de Custos
+* **Custo da Hora de Trabalho:** Uma calculadora de custos que leva em conta despesas fixas (gás, luz, água) e o pró-labore desejado para definir um custo/hora preciso para a mão de obra.
+* **Custo por Ficha Técnica:** Cálculo automático do custo total de produção de cada receita, somando o custo dos ingredientes e, opcionalmente, o custo da mão de obra com base no tempo de produção.
+* **Módulo de Vendas:** Registro de todas as vendas, com cálculo automático de faturamento, custo total e lucro líquido, tanto por venda quanto no geral.
+
+#### Gestão de Produção e Estoque
+* **Controle de Estoque Inteligente:** Cadastro de ingredientes e materiais (incluindo embalagens) com controle de quantidade.
+* **Custo Médio Ponderado:** O custo dos ingredientes é recalculado automaticamente a cada nova compra com preço diferente, garantindo uma precificação sempre justa e atualizada.
+* **Histórico de Compras:** Cada compra de ingrediente fica registrada, permitindo analisar a variação de preços dos fornecedores ao longo do tempo.
+* **Baixa Automática de Estoque:** Funcionalidade para "Produzir" uma ficha técnica, que valida se há estoque suficiente e subtrai as quantidades usadas automaticamente.
+* **Alertas Visuais:** O sistema usa cores (amarelo para alerta, vermelho para crítico) para indicar visualmente quais ingredientes estão com estoque baixo.
+
+#### Ferramentas de Apoio
+* **Fichas Técnicas Detalhadas:** Criação de receitas completas com modo de preparo, rendimento, peso final, tempo de produção e associação com formas de bolo cadastradas.
+* **Gerador de Orçamento em PDF:** Uma ferramenta que permite criar um orçamento personalizado para clientes, adicionando múltiplos itens, e gera um arquivo `.pdf` com design profissional, pronto para ser enviado.
+* **Busca e Paginação:** As listas de ingredientes e fichas técnicas possuem sistemas de busca e paginação para facilitar a navegação.
+* **Sistema de Login:** Acesso seguro à plataforma com um sistema de autenticação de usuários.
 
 ## 🛠️ Tecnologias Utilizadas
 
-* **Backend:** Python 3, Flask
-* **Banco de Dados:** SQLite com SQLAlchemy
+* **Backend:** Python, Flask, Flask-Login, Flask-SQLAlchemy
+* **Banco de Dados:** SQLite (para desenvolvimento local) e PostgreSQL (em produção)
+* **Geração de PDF:** xhtml2pdf e Pillow
 * **Frontend:** HTML5, CSS3, JavaScript
 * **Framework CSS:** Bootstrap 5
-* **Geração de Excel:** Pandas e Openpyxl
 * **Gráficos:** Chart.js
+* **Deploy:** Render, Gunicorn
 
 ## 🚀 Como Rodar o Projeto
 
@@ -32,8 +42,8 @@ Siga os passos abaixo para executar o projeto em um ambiente local.
 
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/SEU_USUARIO/doce-controle.git](https://github.com/SEU_USUARIO/doce-controle.git)
-    cd doce-controle
+    git clone [https://github.com/biinahc/gestao-confeitaria-flask.git](https://github.com/biinahc/gestao-confeitaria-flask.git)
+    cd gestao-confeitaria-flask
     ```
 
 2.  **Crie e ative um ambiente virtual:**
@@ -57,7 +67,12 @@ Siga os passos abaixo para executar o projeto em um ambiente local.
     flask init-db
     ```
 
-5.  **Execute a aplicação:**
+5.  **Crie o primeiro usuário (interativo):**
+    ```bash
+    flask create-user
+    ```
+
+6.  **Execute a aplicação:**
     ```bash
     flask run --debug
     ```
