@@ -394,8 +394,8 @@ def criar_primeiro_usuario():
         return 'Um usuário já existe. Esta rota não fará nada.'
     
     # Crie aqui o usuário com um nome e senha padrão
-    username = 'confeitandocomartes'
-    password = '280588'
+    username = 'admin'
+    password = 'mudar_esta_senha_depois'
     
     new_user = User(username=username)
     new_user.set_password(password)
