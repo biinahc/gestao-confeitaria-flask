@@ -1,3 +1,4 @@
+import os
 import io
 from datetime import datetime
 import pandas as pd
@@ -8,9 +9,15 @@ from sqlalchemy import or_, and_
 from models import db, Ingrediente, FichaTecnica, FichaTecnicaIngrediente, Forma, Configuracao, Venda, Compra
 # --- Configuração Inicial ---
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///confeitando_com_artes.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'uma-chave-secreta-bem-dificil'
+# Configura o URI do banco de dados a partir de uma variável de ambiente.
+# Se a variável não existir, usa um banco SQLite local para desenvolvimento.
+database_uri = os.environ.get('DATABASE_URL')
+if database_uri and database_uri.startswith("postgres://"):
+    database_uri = database_uri.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or 'sqlite:///confeitando_com_artes_local.db'
+
+
 db.init_app(app)
 
 @app.cli.command('init-db')
