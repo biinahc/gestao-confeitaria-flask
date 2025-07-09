@@ -5,7 +5,7 @@
 
     <div class="row mb-4">
         <div class="col-md-4">
-            <div class="card text-center text-white bg-success">
+            <div class="card text-center text-white bg-success shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title">Faturamento Total</h5>
                     <p class="card-text fs-3 fw-bold">R$ {{ "%.2f"|format(faturamento_total)|replace('.',',') }}</p>
@@ -13,7 +13,7 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card text-center text-white bg-danger">
+            <div class="card text-center text-white bg-danger shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title">Custo Total</h5>
                     <p class="card-text fs-3 fw-bold">R$ {{ "%.2f"|format(custo_total)|replace('.',',') }}</p>
@@ -21,7 +21,7 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card text-center text-white bg-primary">
+            <div class="card text-center text-white bg-primary shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title">Lucro Total</h5>
                     <p class="card-text fs-3 fw-bold">R$ {{ "%.2f"|format(lucro_total)|replace('.',',') }}</p>
@@ -35,25 +35,26 @@
         <div class="card-body">
             <form method="POST">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
+                    <div class="col-lg-5">
                         <label for="fichatecnica_id" class="form-label">Produto Vendido (Ficha Técnica)</label>
-                        <select name="fichatecnica_id" class="form-select">
-                            <option selected disabled>-- Selecione uma ficha --</option>
+                        <select name="fichatecnica_id" id="ficha-select" class="form-select" required>
+                            <option value="">-- Selecione uma ficha --</option>
                             {% for ficha in fichas_tecnicas %}
-                            <option value="{{ ficha.id }}">{{ ficha.nome }} (Custo: R$ {{ "%.2f"|format(ficha.custo_total()) }})</option>
+                            <option value="{{ ficha.id }}">{{ ficha.nome }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-lg-2 col-md-4">
                         <label for="quantidade" class="form-label">Quantidade</label>
-                        <input type="number" name="quantidade" class="form-control" value="1" min="1">
+                        <input type="number" name="quantidade" class="form-control" value="1" min="1" required>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-lg-3 col-md-4">
                         <label for="preco_venda_final" class="form-label">Preço Final (R$)</label>
-                        <input type="number" step="0.01" min="0" name="preco_venda_final" class="form-control">
+                        <input type="number" step="0.01" min="0" name="preco_venda_final" id="preco-venda-final" class="form-control" required>
+                        <small class="text-muted">Sugerido: <span id="preco-sugerido" class="fw-bold">R$ 0,00</span></small>
                     </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">Registrar</button>
+                    <div class="col-lg-2 col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">Registrar Venda</button>
                     </div>
                 </div>
             </form>
@@ -86,4 +87,27 @@
             </table>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const precosSugeridos = JSON.parse('{{ precos_sugeridos_json|safe }}');
+            
+            const fichaSelect = document.getElementById('ficha-select');
+            const precoVendaInput = document.getElementById('preco-venda-final');
+            const precoSugeridoSpan = document.getElementById('preco-sugerido');
+
+            fichaSelect.addEventListener('change', function() {
+                const fichaId = this.value;
+                
+                if (fichaId && precosSugeridos[fichaId]) {
+                    const preco = precosSugeridos[fichaId];
+                    precoSugeridoSpan.textContent = `R$ ${preco.toFixed(2).replace('.', ',')}`;
+                    precoVendaInput.value = preco.toFixed(2);
+                } else {
+                    precoSugeridoSpan.textContent = 'R$ 0,00';
+                    precoVendaInput.value = '';
+                }
+            });
+        });
+    </script>
 {% endblock %}

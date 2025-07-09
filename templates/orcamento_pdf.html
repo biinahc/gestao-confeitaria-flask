@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Orçamento - {{ nome_cliente }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+        body { font-family: 'Poppins', sans-serif; color: #333; margin: 0; padding: 0; font-size: 12px; }
+        .pagina { padding: 40px; }
+        .cabecalho { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e0c3fc; padding-bottom: 20px; }
+        .empresa h1 { margin: 0; color: #8a2be2; font-size: 28px; }
+        .empresa p { margin: 0; }
+        .logo { max-width: 100px; }
+        .dados-cliente { margin-top: 30px; padding: 15px; background-color: #f8f0ff; border-radius: 8px; }
+        h2 { color: #8a2be2; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 40px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        thead { background-color: #e0c3fc; color: white; }
+        .total-section { margin-top: 30px; text-align: right; }
+        .total-section h3 { font-size: 22px; color: #333; }
+        .rodape { position: fixed; bottom: 20px; width: 100%; text-align: center; font-size: 10px; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="pagina">
+        <div class="cabecalho">
+            <div class="empresa">
+                <h1>Confeitando com Artes</h1>
+                <p>Orçamento Personalizado</p>
+            </div>
+            </div>
+
+        <div class="dados-cliente">
+            <strong>Cliente:</strong> {{ nome_cliente }}<br>
+            <strong>Contato:</strong> {{ contato_cliente }}<br>
+            <strong>Data do Evento/Entrega:</strong> {{ data_evento }}
+        </div>
+
+        <h2>Itens do Orçamento</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Qtd.</th>
+                    <th>Descrição do Produto</th>
+                    <th>Valor Unit. (R$)</th>
+                    <th>Subtotal (R$)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in itens %}
+                <tr>
+                    <td>{{ item.quantidade }}</td>
+                    <td>{{ item.descricao }}</td>
+                    <td>{{ "%.2f"|format(item.valor_unitario|float)|replace('.',',') }}</td>
+                    <td>{{ "%.2f"|format(item.quantidade|int * item.valor_unitario|float)|replace('.',',') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="total-section">
+            <p>Subtotal: R$ {{ "%.2f"|format(subtotal|float)|replace('.',',') }}</p>
+            <p>Taxa de Entrega: R$ {{ "%.2f"|format(taxa_entrega|float)|replace('.',',') }}</p>
+            <h3>VALOR TOTAL: R$ {{ "%.2f"|format(valor_total|float)|replace('.',',') }}</h3>
+        </div>
+
+        {% if forma_pagamento %}
+        <h2>Forma de Pagamento</h2>
+        <p>{{ forma_pagamento }}</p>
+        {% endif %}
+
+        {% if anotacoes %}
+        <h2>Anotações Adicionais</h2>
+        <p>{{ anotacoes }}</p>
+        {% endif %}
+        
+        <div class="rodape">
+            Obrigado pela preferência! - Confeitando com Artes
+        </div>
+    </div>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import os
 import io
 from datetime import datetime
+import json
 import pandas as pd
 import openpyxl
 from openpyxl.styles import Font, Alignment
@@ -9,6 +10,12 @@ from sqlalchemy import or_, and_
 from models import db, Ingrediente, FichaTecnica, FichaTecnicaIngrediente, Forma, Configuracao, Compra, Venda, User
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+
+from xhtml2pdf import pisa
+from flask import send_file
+from weasyprint import HTML
+
+
 
 # --- Configuração Inicial ---
 app = Flask(__name__)
@@ -356,34 +363,73 @@ def exportar_ficha_tecnica(ficha_tecnica_id):
     filename = f"Ficha_Tecnica_{ficha.nome.replace(' ', '_')}.xlsx"
     return Response(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={'Content-Disposition': f'attachment;filename={filename}'})
 
+# Em app.py
+
 @app.route('/vendas', methods=['GET', 'POST'])
 @login_required
 def gerenciar_vendas():
     if request.method == 'POST':
         fichatecnica_id = request.form.get('fichatecnica_id')
-        quantidade = int(request.form.get('quantidade', 1))
-        preco_venda = float(request.form.get('preco_venda_final', 0))
-        if not fichatecnica_id or preco_venda <= 0:
-            flash('Por favor, selecione uma ficha e insira um preço de venda válido.', 'warning')
+        
+        # Validação robusta para campos vazios e valores inválidos
+        preco_venda_str = request.form.get('preco_venda_final')
+        if not fichatecnica_id or not preco_venda_str:
+            flash('Por favor, selecione uma ficha e preencha o preço de venda.', 'warning')
             return redirect(url_for('gerenciar_vendas'))
+        
+        try:
+            quantidade = int(request.form.get('quantidade', 1))
+            preco_venda = float(preco_venda_str)
+            if preco_venda <= 0 or quantidade <= 0:
+                raise ValueError("Valores devem ser positivos.")
+        except (ValueError, TypeError):
+            flash('Por favor, insira valores numéricos válidos para quantidade e preço.', 'danger')
+            return redirect(url_for('gerenciar_vendas'))
+        
         ficha = FichaTecnica.query.get(fichatecnica_id)
         if not ficha:
             flash('Ficha Técnica não encontrada.', 'danger')
             return redirect(url_for('gerenciar_vendas'))
+
+        # Cálculos da venda
         custo_total_da_venda = ficha.custo_total() * quantidade
         lucro = preco_venda - custo_total_da_venda
-        nova_venda = Venda(fichatecnica_id=fichatecnica_id, quantidade=quantidade, preco_venda_final=preco_venda, custo_producao_total=custo_total_da_venda, lucro_calculado=lucro)
+        
+        nova_venda = Venda(
+            fichatecnica_id=fichatecnica_id, 
+            quantidade=quantidade, 
+            preco_venda_final=preco_venda, 
+            custo_producao_total=custo_total_da_venda, 
+            lucro_calculado=lucro
+        )
         db.session.add(nova_venda)
         db.session.commit()
         flash('Venda registrada com sucesso!', 'success')
         return redirect(url_for('gerenciar_vendas'))
+
+    # Lógica para exibir a página (GET)
     fichas_tecnicas = FichaTecnica.query.order_by(FichaTecnica.nome).all()
     vendas = Venda.query.order_by(Venda.data_venda.desc()).all()
+    
+    # Prepara um dicionário com os preços sugeridos para o JavaScript
+    precos_sugeridos = {
+        ficha.id: round(ficha.custo_total() * 2, 2)  # Custo x2 = 100% de margem
+        for ficha in fichas_tecnicas
+    }
+    precos_sugeridos_json = json.dumps(precos_sugeridos)
+
+    # Calcula os totais para o dashboard
     faturamento_total = sum(v.preco_venda_final for v in vendas)
     custo_total = sum(v.custo_producao_total for v in vendas)
-    lucro_total = sum(v.lucro_calculado for v in vendas)
-    return render_template('vendas.html', fichas_tecnicas=fichas_tecnicas, vendas=vendas, faturamento_total=faturamento_total, custo_total=custo_total, lucro_total=lucro_total)
+    lucro_total = faturamento_total - custo_total
 
+    return render_template('vendas.html', 
+                           fichas_tecnicas=fichas_tecnicas, 
+                           vendas=vendas,
+                           faturamento_total=faturamento_total,
+                           custo_total=custo_total,
+                           lucro_total=lucro_total,
+                           precos_sugeridos_json=precos_sugeridos_json)
 
 # Em app.py
 
@@ -406,6 +452,59 @@ def criar_primeiro_usuario():
 
 
 
+
+
+#orçamento
+
+@app.route('/orcamento/novo')
+@login_required
+def novo_orcamento():
+    """Mostra a página do formulário para criar um novo orçamento."""
+    return render_template('gerador_orcamento.html')
+
+
+
+
+
+
+@app.route('/orcamento/gerar-pdf', methods=['POST']) 
+@login_required
+def gerar_pdf_orcamento():
+    """Pega os dados do formulário e gera um orçamento em PDF."""
+    
+    # Coleta todos os dados do formulário em um dicionário
+    dados_orcamento = request.form.to_dict()
+    
+    # Converte os itens do orçamento de JSON para uma lista de dicionários
+    itens_json = request.form.get('itens_orcamento')
+    dados_orcamento['itens'] = json.loads(itens_json) if itens_json else []
+
+    if not dados_orcamento.get('nome_cliente') or not dados_orcamento['itens']:
+        flash('Nome do cliente e pelo menos um item são obrigatórios.', 'warning')
+        return redirect(url_for('novo_orcamento'))
+
+    # Calcula os totais para passar para o template do PDF
+    subtotal = sum(float(item['quantidade']) * float(item['valor_unitario']) for item in dados_orcamento['itens'])
+    taxa_entrega = float(dados_orcamento.get('taxa_entrega', 0) or 0)
+    dados_orcamento['subtotal'] = subtotal
+    dados_orcamento['valor_total'] = subtotal + taxa_entrega
+    
+    # 1. Renderiza o template HTML com os dados, gerando uma string de HTML
+    html_string = render_template('orcamento_pdf.html', **dados_orcamento)
+    
+    # 2. Usa o WeasyPrint para converter a string HTML em um arquivo PDF
+    pdf_bytes = HTML(string=html_string).write_pdf()
+    
+    # 3. Cria um nome de arquivo dinâmico
+    nome_cliente = dados_orcamento.get('nome_cliente', 'cliente').replace(' ', '_')
+    filename = f'orcamento_{nome_cliente}.pdf'
+    
+    # 4. Retorna o PDF para download
+    return Response(
+        pdf_bytes,
+        mimetype='application/pdf',
+        headers={'Content-Disposition': f'attachment;filename={filename}'}
+    )
 
 
 if __name__ == '__main__':
