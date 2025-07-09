@@ -9,11 +9,11 @@ from flask import Flask, render_template, request, redirect, url_for, flash, Res
 from sqlalchemy import or_, and_
 from models import db, Ingrediente, FichaTecnica, FichaTecnicaIngrediente, Forma, Configuracao, Compra, Venda, User
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+
 
 from xhtml2pdf import pisa
 from flask import send_file
-from weasyprint import HTML
+from io import BytesIO
 
 
 
@@ -467,15 +467,18 @@ def novo_orcamento():
 
 
 
-@app.route('/orcamento/gerar-pdf', methods=['POST']) 
+# Em app.py
+
+# Em app.py
+
+# Em app.py
+
+@app.route('/orcamento/gerar-pdf', methods=['POST'])
 @login_required
 def gerar_pdf_orcamento():
     """Pega os dados do formulário e gera um orçamento em PDF."""
     
-    # Coleta todos os dados do formulário em um dicionário
     dados_orcamento = request.form.to_dict()
-    
-    # Converte os itens do orçamento de JSON para uma lista de dicionários
     itens_json = request.form.get('itens_orcamento')
     dados_orcamento['itens'] = json.loads(itens_json) if itens_json else []
 
@@ -483,27 +486,44 @@ def gerar_pdf_orcamento():
         flash('Nome do cliente e pelo menos um item são obrigatórios.', 'warning')
         return redirect(url_for('novo_orcamento'))
 
-    # Calcula os totais para passar para o template do PDF
+    # --- INÍCIO DA CORREÇÃO DE DATA ---
+    # Formata a data do pedido
+    data_pedido_str = dados_orcamento.get('data_pedido')
+    if data_pedido_str:
+        dados_orcamento['data_pedido'] = datetime.strptime(data_pedido_str, '%Y-%m-%d').strftime('%d/%m/%Y')
+    
+    # Formata a data do evento/entrega
+    data_evento_str = dados_orcamento.get('data_evento')
+    if data_evento_str:
+        dados_orcamento['data_evento'] = datetime.strptime(data_evento_str, '%Y-%m-%d').strftime('%d/%m/%Y')
+    # --- FIM DA CORREÇÃO ---
+
+    # Calcula os totais
     subtotal = sum(float(item['quantidade']) * float(item['valor_unitario']) for item in dados_orcamento['itens'])
     taxa_entrega = float(dados_orcamento.get('taxa_entrega', 0) or 0)
     dados_orcamento['subtotal'] = subtotal
     dados_orcamento['valor_total'] = subtotal + taxa_entrega
     
-    # 1. Renderiza o template HTML com os dados, gerando uma string de HTML
+    # Renderiza o template HTML com os dados já formatados
     html_string = render_template('orcamento_pdf.html', **dados_orcamento)
     
-    # 2. Usa o WeasyPrint para converter a string HTML em um arquivo PDF
-    pdf_bytes = HTML(string=html_string).write_pdf()
+    # Gera o PDF (código sem alteração)
+    result = BytesIO()
+    pdf = pisa.CreatePDF(BytesIO(html_string.encode("UTF-8")), dest=result)
     
-    # 3. Cria um nome de arquivo dinâmico
+    if pdf.err:
+        flash(f'Ocorreu um erro ao gerar o PDF: {pdf.err}', 'danger')
+        return redirect(url_for('novo_orcamento'))
+
+    result.seek(0)
     nome_cliente = dados_orcamento.get('nome_cliente', 'cliente').replace(' ', '_')
     filename = f'orcamento_{nome_cliente}.pdf'
     
-    # 4. Retorna o PDF para download
-    return Response(
-        pdf_bytes,
+    return send_file(
+        result,
         mimetype='application/pdf',
-        headers={'Content-Disposition': f'attachment;filename={filename}'}
+        as_attachment=True,
+        download_name=filename
     )
 
 

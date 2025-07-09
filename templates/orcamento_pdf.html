@@ -4,78 +4,101 @@
     <meta charset="UTF-8">
     <title>Orçamento - {{ nome_cliente }}</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
-        body { font-family: 'Poppins', sans-serif; color: #333; margin: 0; padding: 0; font-size: 12px; }
-        .pagina { padding: 40px; }
-        .cabecalho { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e0c3fc; padding-bottom: 20px; }
-        .empresa h1 { margin: 0; color: #8a2be2; font-size: 28px; }
-        .empresa p { margin: 0; }
-        .logo { max-width: 100px; }
-        .dados-cliente { margin-top: 30px; padding: 15px; background-color: #f8f0ff; border-radius: 8px; }
-        h2 { color: #8a2be2; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 40px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        thead { background-color: #e0c3fc; color: white; }
-        .total-section { margin-top: 30px; text-align: right; }
-        .total-section h3 { font-size: 22px; color: #333; }
-        .rodape { position: fixed; bottom: 20px; width: 100%; text-align: center; font-size: 10px; color: #888; }
+        body { font-family: sans-serif; font-size: 14px; color: #333; }
+        .pagina { width: 100%; }
+        .cabecalho { text-align: center; margin-bottom: 20px; }
+        .cabecalho .logo-principal { height: 50px; }
+        .cabecalho .logo-secundaria { height: 50px; }
+        .titulo h1 { font-size: 20px; color: #D17B88; margin: 0; }
+        .titulo p { font-size: 14px; margin: 0; color: #555; }
+        .info-tabela { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
+        .info-tabela td { padding: 4px; }
+        .info-tabela .label { font-weight: bold; width: 100px; }
+        .info-tabela .campo { border: 1px solid #FBC0C2; background-color: #FFF8F8; border-radius: 4px; padding: 8px; }
+        .tabela-itens { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .tabela-itens th, .tabela-itens td { border: 1px solid #FBC0C2; padding: 8px; }
+        .tabela-itens thead { background-color: #FBC0C2; color: #333; font-weight: bold; }
+        .tabela-itens tbody tr { height: 35px; }
+        .tabela-itens .col-qtd { width: 10%; text-align: center; font-size: 12px }
+        .tabela-itens .col-produto { width: 55%; text-align: left; font-size: 12px}
+        .tabela-itens .col-valor { width: 15%; text-align: right; font-size: 12px}
+        .tabela-itens .col-total { width: 20%; text-align: right; font-size: 12px}
+        .rodape-tabela { margin-top: 15px; }
+        .secao-pagamento { border: 2px solid #FBC0C2; background: #FFF8F8; padding: 10px; border-radius: 8px; }
+        .secao-total { border: 2px solid #D17B88; background: #FFF0E1; padding: 10px; border-radius: 8px; text-align: center; }
+        .secao-anotacoes { margin-top: 15px; border: 2px solid #FBC0C2; padding: 10px; min-height: 60px; border-radius: 8px; }
     </style>
 </head>
 <body>
     <div class="pagina">
-        <div class="cabecalho">
-            <div class="empresa">
-                <h1>Confeitando com Artes</h1>
-                <p>Orçamento Personalizado</p>
-            </div>
-            </div>
+        <table style="width: 100%;">
+            <tr>
+                <td style="width: 20%; text-align: left;"><img src="https://raw.githubusercontent.com/biinahc/gestao-confeitaria-flask/main/static/images/logo_principal.png" alt="Logo" class="logo-principal"></td>
+                <td style="width: 60%; text-align: center;" class="titulo">
+                    <h1>Edneuza Silva</h1>
+                    <p>CONFEITANDO COM ARTES</p>
+                </td>
+                <td style="width: 20%; text-align: right;"><img src="https://raw.githubusercontent.com/biinahc/gestao-confeitaria-flask/main/static/images/logo_segundo.png" alt="Logo" class="logo-secundaria"></td>
+            </tr>
+        </table>
+        
+        <hr style="border: 1px solid #FBC0C2; margin: 20px 0;">
 
-        <div class="dados-cliente">
-            <strong>Cliente:</strong> {{ nome_cliente }}<br>
-            <strong>Contato:</strong> {{ contato_cliente }}<br>
-            <strong>Data do Evento/Entrega:</strong> {{ data_evento }}
-        </div>
-
-        <h2>Itens do Orçamento</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Qtd.</th>
-                    <th>Descrição do Produto</th>
-                    <th>Valor Unit. (R$)</th>
-                    <th>Subtotal (R$)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in itens %}
-                <tr>
-                    <td>{{ item.quantidade }}</td>
-                    <td>{{ item.descricao }}</td>
-                    <td>{{ "%.2f"|format(item.valor_unitario|float)|replace('.',',') }}</td>
-                    <td>{{ "%.2f"|format(item.quantidade|int * item.valor_unitario|float)|replace('.',',') }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
+        <table class="info-tabela">
+            <tr><td class="label">Data do Pedido:</td><td class="campo">{{ data_pedido}}</td><td class="label">Data da Entrega:</td><td class="campo">{{ data_evento or 'A combinar' }}</td></tr>
+            <tr><td class="label">Cliente:</td><td colspan="3" class="campo">{{ nome_cliente or '' }}</td></tr>
+             <tr><td class="label">Valor Frete:</td><td colspan="3" class="campo">{{ taxa_entrega or '' }}</td></tr>
+            <tr><td class="label">Fone:</td><td colspan="3" class="campo">{{ contato_cliente or '' }}</td></tr>
+            <tr><td class="label">Endereço:</td><td colspan="3" class="campo">{{ endereco_cliente or 'Retirada no local' }}</td></tr>
         </table>
 
-        <div class="total-section">
-            <p>Subtotal: R$ {{ "%.2f"|format(subtotal|float)|replace('.',',') }}</p>
-            <p>Taxa de Entrega: R$ {{ "%.2f"|format(taxa_entrega|float)|replace('.',',') }}</p>
-            <h3>VALOR TOTAL: R$ {{ "%.2f"|format(valor_total|float)|replace('.',',') }}</h3>
-        </div>
-
-        {% if forma_pagamento %}
-        <h2>Forma de Pagamento</h2>
-        <p>{{ forma_pagamento }}</p>
+      <table class="tabela-itens">
+    <thead>
+        <tr>
+            <th style="width: 10%;">Qtd.</th>
+            <th style="width: 55%;">Produto</th>
+            <th style="width: 15%;">R$ un.</th>
+            <th style="width: 20%;">Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in itens %}
+        <tr>
+            <td style="font-size: 12px ; text-align: center;">{{ item.quantidade }}</td>
+            <td>{{ item.descricao }}</td>
+            <td style="text-align: right; ">R$ {{ "%.2f"|format(item.valor_unitario|float)|replace('.',',') }}</td>
+            <td style="text-align: right; font-size: 12px">R$ {{ "%.2f"|format(item.quantidade|int * item.valor_unitario|float)|replace('.',',') }}</td>
+        </tr>
+        {% endfor %}
+        {% if itens|length < 8 %}
+            {% for i in range(8 - itens|length) %}
+            <tr>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+            </tr>
+            {% endfor %}
         {% endif %}
+    </tbody>
+</table>
 
-        {% if anotacoes %}
-        <h2>Anotações Adicionais</h2>
-        <p>{{ anotacoes }}</p>
-        {% endif %}
-        
-        <div class="rodape">
-            Obrigado pela preferência! - Confeitando com Artes
+        <table style="width: 100%; margin-top: 15px; border-spacing: 10px 0; border-collapse: separate;">
+            <tr>
+                <td style="width: 65%;" class="secao-pagamento">
+                    <h3 style="margin: 0 0 5px 0;">Pagamento</h3>
+                    <p style="margin: 0;">{{ forma_pagamento or 'A combinar.'}}</p>
+                </td>
+                <td style="width: 35%;" class="secao-total">
+                    <p style="margin: 0; font-size: 12px; font-weight: bold;">VALOR TOTAL</p>
+                    <p style="margin: 0; font-size: 11px; font-weight: bold; color: #D17B88;">R$ {{ "%.2f"|format(valor_total|float)|replace('.',',') }}</p>
+                </td>
+            </tr>
+        </table>
+
+        <div class="secao-anotacoes">
+            <h3>Anotações:</h3>
+            <p>{{ anotacoes or 'Nenhuma.'}}</p>
         </div>
     </div>
 </body>

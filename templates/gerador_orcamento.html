@@ -7,10 +7,12 @@
         <div class="card mb-4">
             <div class="card-header">1. Dados do Cliente e Entrega</div>
             <div class="card-body row g-3">
+                <div class="col-md-6"><label class="form-label">Data do Pedido</label><input type="date" name="data_pedido" class="form-control"></div>
+                <div class="col-md-6"><label class="form-label">Data da Entrega</label><input type="date" name="data_evento" class="form-control"></div>
+
                 <div class="col-md-6"><label class="form-label">Nome do Cliente</label><input type="text" name="nome_cliente" class="form-control" required></div>
                 <div class="col-md-6"><label class="form-label">Contato (Telefone/WhatsApp)</label><input type="text" name="contato_cliente" class="form-control"></div>
                 <div class="col-12"><label class="form-label">Endereço de Entrega (opcional)</label><textarea name="endereco_cliente" class="form-control" rows="2"></textarea></div>
-                <div class="col-md-6"><label class="form-label">Data do Evento/Entrega</label><input type="date" name="data_evento" class="form-control"></div>
                 <div class="col-md-6"><label class="form-label">Taxa de Entrega (R$)</label><input type="number" step="0.01" min="0" name="taxa_entrega" class="form-control" value="0"></div>
             </div>
         </div>
@@ -44,7 +46,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         const addItemBtn = document.getElementById('add-item-btn');
         const itensTabela = document.getElementById('itens-tabela');
-        const submitBtn = document.getElementById('submit-btn'); // Pega o botão
+        const submitBtn = document.getElementById('submit-btn');
         const hiddenInput = document.getElementById('itens-orcamento-json');
 
         function criarNovaLinha() {
@@ -66,7 +68,6 @@
             }
         });
 
-        // MUDANÇA: A lógica de coletar os dados foi movida para o clique do botão
         submitBtn.addEventListener('click', function(e) {
             const itens = [];
             const linhas = itensTabela.getElementsByTagName('tr');
@@ -82,7 +83,6 @@
                     });
                 }
             }
-            // Atualiza o valor do campo escondido ANTES de enviar o formulário
             hiddenInput.value = JSON.stringify(itens);
         });
 
