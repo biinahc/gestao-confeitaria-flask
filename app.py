@@ -6,29 +6,74 @@ import openpyxl
 from openpyxl.styles import Font, Alignment
 from flask import Flask, render_template, request, redirect, url_for, flash, Response
 from sqlalchemy import or_, and_
-from models import db, Ingrediente, FichaTecnica, FichaTecnicaIngrediente, Forma, Configuracao, Venda, Compra
+from models import db, Ingrediente, FichaTecnica, FichaTecnicaIngrediente, Forma, Configuracao, Compra, Venda, User
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+
 # --- Configuração Inicial ---
 app = Flask(__name__)
-# Configura o URI do banco de dados a partir de uma variável de ambiente.
-# Se a variável não existir, usa um banco SQLite local para desenvolvimento.
 database_uri = os.environ.get('DATABASE_URL')
 if database_uri and database_uri.startswith("postgres://"):
     database_uri = database_uri.replace("postgres://", "postgresql://", 1)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or 'sqlite:///confeitando_com_artes_local.db'
-
-
+app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or 'sqlite:///confeitando_com_artes.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'uma-chave-secreta-bem-dificil')
 db.init_app(app)
 
+# --- Configuração do Login ---
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = "Por favor, faça o login para acessar esta página."
+login_manager.login_message_category = "info"
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# --- Comandos do Terminal ---
 @app.cli.command('init-db')
 def init_db_command():
-    """Cria as tabelas do banco de dados."""
     db.create_all()
     print('Banco de dados inicializado com sucesso!')
 
-# --- ROTAS PRINCIPAIS E DE GESTÃO ---
+@app.cli.command("create-user")
+def create_user():
+    """Cria o usuário administrador inicial."""
+    username = input("Digite o nome de usuário: ")
+    password = input("Digite a senha: ")
+    user = User.query.filter_by(username=username).first()
+    if user:
+        print("Usuário já existe.")
+        return
+    new_user = User(username=username)
+    new_user.set_password(password)
+    db.session.add(new_user)
+    db.session.commit()
+    print(f"Usuário {username} criado com sucesso!")
 
+# --- Rotas de Autenticação ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        user = User.query.filter_by(username=request.form['username']).first()
+        if user and user.check_password(request.form['password']):
+            login_user(user)
+            return redirect(url_for('index'))
+        else:
+            flash('Usuário ou senha inválidos.', 'danger')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+# --- ROTAS PRINCIPAIS E DE GESTÃO ---
 @app.route('/')
+@login_required
 def index():
     ingredientes_estoque_grafico = Ingrediente.query.order_by(Ingrediente.quantidade_estoque.desc()).limit(10).all()
     labels_grafico = [ing.nome for ing in ingredientes_estoque_grafico]
@@ -40,11 +85,12 @@ def index():
     return render_template('index.html', total_fichas=total_fichas, labels_grafico=labels_grafico, dados_grafico=dados_grafico, alertas_estoque=ingredientes_pouco_estoque)
 
 @app.route('/ingredientes', methods=['GET', 'POST'])
+@login_required
 def gerenciar_ingredientes():
     if request.method == 'POST':
         nome = request.form['nome'].strip()
         if Ingrediente.query.filter(db.func.lower(Ingrediente.nome) == db.func.lower(nome)).first():
-            flash(f'Erro: O ingrediente "{nome}" já está cadastrado. Adicione mais estoque na lista abaixo.', 'danger')
+            flash(f'Erro: O ingrediente "{nome}" já está cadastrado.', 'danger')
             return redirect(url_for('gerenciar_ingredientes'))
         tipo_preco = request.form['tipo_preco']
         preco_informado = float(request.form.get('preco', 0) or 0)
@@ -64,11 +110,16 @@ def gerenciar_ingredientes():
         flash(f'Ingrediente "{nome}" cadastrado com sucesso!', 'success')
         return redirect(url_for('gerenciar_ingredientes'))
     page = request.args.get('page', 1, type=int)
-    paginacao = Ingrediente.query.order_by(Ingrediente.nome).paginate(page=page, per_page=10, error_out=False)
+    q = request.args.get('q', '', type=str)
+    query = Ingrediente.query
+    if q:
+        query = query.filter(Ingrediente.nome.ilike(f'%{q}%'))
+    paginacao = query.order_by(Ingrediente.nome).paginate(page=page, per_page=10, error_out=False)
     ingredientes_da_pagina = paginacao.items
-    return render_template('ingredientes.html', ingredientes=ingredientes_da_pagina, paginacao=paginacao)
+    return render_template('ingredientes.html', ingredientes=ingredientes_da_pagina, paginacao=paginacao, q=q)
 
 @app.route('/ingrediente/adicionar-estoque/<int:ingrediente_id>', methods=['POST'])
+@login_required
 def adicionar_estoque(ingrediente_id):
     ingrediente = Ingrediente.query.get_or_404(ingrediente_id)
     preco_lote = float(request.form.get('preco_lote', 0) or 0)
@@ -92,6 +143,7 @@ def adicionar_estoque(ingrediente_id):
     return redirect(url_for('gerenciar_ingredientes'))
 
 @app.route('/ingrediente/edit/<int:ingrediente_id>', methods=['GET', 'POST'])
+@login_required
 def editar_ingrediente(ingrediente_id):
     ingrediente = Ingrediente.query.get_or_404(ingrediente_id)
     if request.method == 'POST':
@@ -108,6 +160,7 @@ def editar_ingrediente(ingrediente_id):
     return render_template('editar_ingrediente.html', ingrediente=ingrediente)
 
 @app.route('/ingrediente/delete/<int:ingrediente_id>', methods=['POST'])
+@login_required
 def deletar_ingrediente(ingrediente_id):
     ingrediente = Ingrediente.query.get_or_404(ingrediente_id)
     db.session.delete(ingrediente)
@@ -116,12 +169,14 @@ def deletar_ingrediente(ingrediente_id):
     return redirect(url_for('gerenciar_ingredientes'))
 
 @app.route('/ingrediente/<int:ingrediente_id>/historico')
+@login_required
 def historico_compras(ingrediente_id):
     ingrediente = Ingrediente.query.get_or_404(ingrediente_id)
     historico = Compra.query.filter_by(ingrediente_id=ingrediente.id).order_by(Compra.data_compra.desc()).all()
     return render_template('historico_compras.html', ingrediente=ingrediente, historico=historico)
 
 @app.route('/formas', methods=['GET', 'POST'])
+@login_required
 def gerenciar_formas():
     if request.method == 'POST':
         descricao = request.form['descricao'].strip()
@@ -137,6 +192,7 @@ def gerenciar_formas():
     return render_template('formas.html', formas=formas)
 
 @app.route('/configuracoes', methods=['GET', 'POST'])
+@login_required
 def gerenciar_configuracoes():
     config = Configuracao.query.get(1)
     if not config:
@@ -158,96 +214,58 @@ def gerenciar_configuracoes():
     return render_template('configuracoes.html', config=config)
 
 @app.route('/fichas-tecnicas', methods=['GET', 'POST'])
+@login_required
 def gerenciar_fichas_tecnicas():
     if request.method == 'POST':
-        # A lógica para CRIAR uma nova ficha continua a mesma
-        nova_ficha = FichaTecnica(
-            nome=request.form['nome'], 
-            rendimento=request.form['rendimento'], 
-            observacoes=request.form['observacoes']
-        )
+        nova_ficha = FichaTecnica(nome=request.form['nome'], rendimento=request.form['rendimento'], observacoes=request.form['observacoes'])
         db.session.add(nova_ficha)
         db.session.commit()
         flash('Ficha Técnica criada com sucesso!', 'success')
         return redirect(url_for('gerenciar_fichas_tecnicas'))
-    
-    # --- NOVA LÓGICA DE BUSCA E PAGINAÇÃO ---
-    
-    # 1. Pega os parâmetros da URL
     page = request.args.get('page', 1, type=int)
-    q = request.args.get('q', '', type=str) # 'q' é nosso termo de busca
-    
-    # 2. Inicia a consulta base
+    q = request.args.get('q', '', type=str)
     query = FichaTecnica.query
-
-    # 3. Se houver um termo de busca, filtra os resultados
     if q:
-        # Usamos 'ilike' para uma busca case-insensitive que contém o termo
         query = query.filter(FichaTecnica.nome.ilike(f'%{q}%'))
-
-    # 4. Ordena e aplica a paginação na consulta final
-    paginacao = query.order_by(FichaTecnica.nome).paginate(
-        page=page, per_page=5, error_out=False # 5 itens por página, como solicitado
-    )
-    
+    paginacao = query.order_by(FichaTecnica.nome).paginate(page=page, per_page=5, error_out=False)
     fichas_da_pagina = paginacao.items
-    
-    # 5. Passa os dados para o template, incluindo o termo de busca 'q'
-    return render_template('fichas_tecnicas.html', 
-                           fichas_tecnicas=fichas_da_pagina, 
-                           paginacao=paginacao,
-                           q=q)
+    return render_template('fichas_tecnicas.html', fichas_tecnicas=fichas_da_pagina, paginacao=paginacao, q=q)
 
 @app.route('/ficha-tecnica/<int:ficha_tecnica_id>', methods=['GET', 'POST'])
+@login_required
 def detalhe_ficha_tecnica(ficha_tecnica_id):
     ficha = FichaTecnica.query.get_or_404(ficha_tecnica_id)
     todos_ingredientes = Ingrediente.query.order_by(Ingrediente.nome).all()
     todas_formas = Forma.query.order_by(Forma.descricao).all()
-
     if request.method == 'POST':
         if 'ingrediente_id' in request.form:
-            ingrediente_id = request.form.get('ingrediente_id')
-            quantidade_usada = request.form.get('quantidade_usada')
-            if ingrediente_id and quantidade_usada:
-                nova_associacao = FichaTecnicaIngrediente(fichatecnica_id=ficha.id, ingrediente_id=int(ingrediente_id), quantidade_usada=float(quantidade_usada))
-                db.session.add(nova_associacao)
-                db.session.commit()
-                flash('Ingrediente adicionado à ficha!', 'success')
+            nova_associacao = FichaTecnicaIngrediente(fichatecnica_id=ficha.id, ingrediente_id=int(request.form['ingrediente_id']), quantidade_usada=float(request.form['quantidade_usada']))
+            db.session.add(nova_associacao)
+            db.session.commit()
+            flash('Ingrediente adicionado à ficha!', 'success')
         elif 'atualizar_ficha' in request.form:
             ficha.rendimento = request.form.get('rendimento')
             ficha.observacoes = request.form.get('observacoes')
-            peso_str = request.form.get('peso_final_gramas')
-            ficha.peso_final_gramas = float(peso_str) if peso_str and peso_str.strip() else None
-            tempo_str = request.form.get('tempo_producao_minutos')
-            ficha.tempo_producao_minutos = int(tempo_str) if tempo_str and tempo_str.strip() else 0
+            ficha.peso_final_gramas = float(request.form.get('peso_final_gramas')) if request.form.get('peso_final_gramas') else None
+            ficha.tempo_producao_horas = int(request.form.get('tempo_producao_horas',0) or 0)
+            ficha.tempo_producao_minutos = int(request.form.get('tempo_producao_minutos',0) or 0)
             ficha.incluir_custo_mao_de_obra = 'incluir_custo_mao_de_obra' in request.form
             ids_formas_selecionadas = request.form.getlist('formas_selecionadas')
             ficha.formas = [Forma.query.get(id_forma) for id_forma in ids_formas_selecionadas]
             db.session.commit()
             flash('Ficha Técnica atualizada com sucesso!', 'info')
         return redirect(url_for('detalhe_ficha_tecnica', ficha_tecnica_id=ficha.id))
-# --- NOVA LÓGICA DE PAGINAÇÃO PARA OS INGREDIENTES DA FICHA ---
-    # Usamos 'page_ing' para não conflitar com outras paginações
     page_ing = request.args.get('page_ing', 1, type=int)
-    
-    # Criamos uma consulta paginada para os ingredientes *desta* ficha
-    paginacao_ingredientes = FichaTecnicaIngrediente.query.filter_by(fichatecnica_id=ficha.id).paginate(
-        page=page_ing, per_page=5, error_out=False # 5 ingredientes por página
-    )
-    
-    # Passamos o objeto de paginação para o template
-    return render_template('ficha_tecnica_detalhe.html', 
-                           ficha=ficha, 
-                           todos_ingredientes=todos_ingredientes, 
-                           todas_formas=todas_formas,
-                           paginacao_ingredientes=paginacao_ingredientes)
+    paginacao_ingredientes = FichaTecnicaIngrediente.query.filter_by(fichatecnica_id=ficha.id).paginate(page=page_ing, per_page=5, error_out=False)
+    return render_template('ficha_tecnica_detalhe.html', ficha=ficha, todos_ingredientes=todos_ingredientes, todas_formas=todas_formas, paginacao_ingredientes=paginacao_ingredientes)
+
 @app.route('/ficha-tecnica/produzir/<int:ficha_tecnica_id>', methods=['POST'])
+@login_required
 def produzir_ficha_tecnica(ficha_tecnica_id):
     ficha = FichaTecnica.query.get_or_404(ficha_tecnica_id)
     try:
         quantidade_a_produzir = int(request.form.get('quantidade_a_produzir', 1))
-        if quantidade_a_produzir <= 0:
-            raise ValueError()
+        if quantidade_a_produzir <= 0: raise ValueError()
     except (ValueError, TypeError):
         flash('A quantidade a produzir deve ser um número inteiro maior que zero.', 'warning')
         return redirect(url_for('detalhe_ficha_tecnica', ficha_tecnica_id=ficha_tecnica_id))
@@ -262,6 +280,7 @@ def produzir_ficha_tecnica(ficha_tecnica_id):
     return redirect(url_for('detalhe_ficha_tecnica', ficha_tecnica_id=ficha_tecnica_id))
 
 @app.route('/ficha-tecnica/ingrediente/delete/<int:item_id>', methods=['POST'])
+@login_required
 def deletar_item_ficha(item_id):
     item = FichaTecnicaIngrediente.query.get_or_404(item_id)
     ficha_id = item.fichatecnica_id
@@ -271,6 +290,7 @@ def deletar_item_ficha(item_id):
     return redirect(url_for('detalhe_ficha_tecnica', ficha_tecnica_id=ficha_id))
 
 @app.route('/ficha-tecnica/delete/<int:ficha_tecnica_id>', methods=['POST'])
+@login_required
 def deletar_ficha_tecnica(ficha_tecnica_id):
     ficha = FichaTecnica.query.get_or_404(ficha_tecnica_id)
     db.session.delete(ficha)
@@ -279,6 +299,7 @@ def deletar_ficha_tecnica(ficha_tecnica_id):
     return redirect(url_for('gerenciar_fichas_tecnicas'))
 
 @app.route('/exportar/ficha-tecnica/<int:ficha_tecnica_id>')
+@login_required
 def exportar_ficha_tecnica(ficha_tecnica_id):
     ficha = FichaTecnica.query.get_or_404(ficha_tecnica_id)
     workbook = openpyxl.Workbook()
@@ -307,11 +328,7 @@ def exportar_ficha_tecnica(ficha_tecnica_id):
         cell.font = bold_font
     for item in ficha.ingredientes:
         custo_item = item.ingrediente.preco_por_unidade() * item.quantidade_usada
-        sheet.append([
-            item.ingrediente.nome, item.ingrediente.marca,
-            item.quantidade_usada, item.ingrediente.unidade_medida,
-            round(custo_item, 2)
-        ])
+        sheet.append([item.ingrediente.nome, item.ingrediente.marca, item.quantidade_usada, item.ingrediente.unidade_medida, round(custo_item, 2)])
     sheet.append([''])
     summary_start_row = sheet.max_row + 1
     if ficha.peso_final_gramas:
@@ -332,71 +349,40 @@ def exportar_ficha_tecnica(ficha_tecnica_id):
     obs_cell = sheet[f'A{obs_start_row + 1}']
     obs_cell.value = ficha.observacoes
     obs_cell.alignment = Alignment(wrap_text=True, vertical='top')
-    sheet.column_dimensions['A'].width = 30; sheet.column_dimensions['B'].width = 20
-    sheet.column_dimensions['C'].width = 18; sheet.column_dimensions['D'].width = 15
-    sheet.column_dimensions['E'].width = 18
+    sheet.column_dimensions['A'].width = 30; sheet.column_dimensions['B'].width = 20; sheet.column_dimensions['C'].width = 18; sheet.column_dimensions['D'].width = 15; sheet.column_dimensions['E'].width = 18
     output = io.BytesIO()
     workbook.save(output)
     output.seek(0)
     filename = f"Ficha_Tecnica_{ficha.nome.replace(' ', '_')}.xlsx"
-    return Response(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    headers={'Content-Disposition': f'attachment;filename={filename}'})
-
-
-
-
-#vendas
-
-# Em app.py
+    return Response(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={'Content-Disposition': f'attachment;filename={filename}'})
 
 @app.route('/vendas', methods=['GET', 'POST'])
+@login_required
 def gerenciar_vendas():
     if request.method == 'POST':
         fichatecnica_id = request.form.get('fichatecnica_id')
         quantidade = int(request.form.get('quantidade', 1))
         preco_venda = float(request.form.get('preco_venda_final', 0))
-        
         if not fichatecnica_id or preco_venda <= 0:
             flash('Por favor, selecione uma ficha e insira um preço de venda válido.', 'warning')
             return redirect(url_for('gerenciar_vendas'))
-
         ficha = FichaTecnica.query.get(fichatecnica_id)
         if not ficha:
             flash('Ficha Técnica não encontrada.', 'danger')
             return redirect(url_for('gerenciar_vendas'))
-
-        # Calcula o custo e lucro para a quantidade vendida
         custo_total_da_venda = ficha.custo_total() * quantidade
         lucro = preco_venda - custo_total_da_venda
-
-        nova_venda = Venda(
-            fichatecnica_id=fichatecnica_id,
-            quantidade=quantidade,
-            preco_venda_final=preco_venda,
-            custo_producao_total=custo_total_da_venda,
-            lucro_calculado=lucro
-        )
+        nova_venda = Venda(fichatecnica_id=fichatecnica_id, quantidade=quantidade, preco_venda_final=preco_venda, custo_producao_total=custo_total_da_venda, lucro_calculado=lucro)
         db.session.add(nova_venda)
         db.session.commit()
         flash('Venda registrada com sucesso!', 'success')
         return redirect(url_for('gerenciar_vendas'))
-
-    # Lógica para exibir a página
     fichas_tecnicas = FichaTecnica.query.order_by(FichaTecnica.nome).all()
     vendas = Venda.query.order_by(Venda.data_venda.desc()).all()
-    
-    # Calcula os totais para o dashboard
     faturamento_total = sum(v.preco_venda_final for v in vendas)
     custo_total = sum(v.custo_producao_total for v in vendas)
     lucro_total = sum(v.lucro_calculado for v in vendas)
-
-    return render_template('vendas.html', 
-                           fichas_tecnicas=fichas_tecnicas, 
-                           vendas=vendas,
-                           faturamento_total=faturamento_total,
-                           custo_total=custo_total,
-                           lucro_total=lucro_total)
-
+    return render_template('vendas.html', fichas_tecnicas=fichas_tecnicas, vendas=vendas, faturamento_total=faturamento_total, custo_total=custo_total, lucro_total=lucro_total)
 
 if __name__ == '__main__':
     app.run(debug=True)
