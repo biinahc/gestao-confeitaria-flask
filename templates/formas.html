@@ -1,7 +1,5 @@
 {% extends 'base.html' %}
-
 {% block title %}Gerenciar Formas{% endblock %}
-
 {% block content %}
     <h2 class="mb-4">Gerenciar Formas</h2>
     
@@ -21,10 +19,103 @@
         <div class="card-header">Formas Cadastradas</div>
         <ul class="list-group list-group-flush">
             {% for forma in formas %}
-                <li class="list-group-item">{{ forma.descricao }}</li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{{ forma.descricao }}</span>
+                    <div>
+                        <button type="button" class="btn btn-warning btn-sm" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#editFormaModal"
+                                data-id="{{ forma.id }}"
+                                data-descricao="{{ forma.descricao }}">
+                            Editar
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm"
+                                data-bs-toggle="modal"
+                                data-bs-target="#confirmDeleteModal"
+                                data-id="{{ forma.id }}">
+                            Excluir
+                        </button>
+                    </div>
+                </li>
             {% else %}
                 <li class="list-group-item text-center">Nenhuma forma cadastrada.</li>
             {% endfor %}
         </ul>
     </div>
+
+<div class="modal fade" id="editFormaModal" tabindex="-1" aria-labelledby="editFormaModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editFormaModalLabel">Editar Forma</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editForm" method="POST">
+        <div class="modal-body">
+            <label for="editDescricaoInput" class="form-label">Descrição</label>
+            <input type="text" class="form-control" name="descricao" id="editDescricaoInput" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmar Exclusão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Você tem certeza que deseja excluir esta forma?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sim, Excluir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form id="deleteForm" method="POST" style="display: none;"></form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // --- LÓGICA PARA O MODAL DE EDIÇÃO ---
+    var editModal = document.getElementById('editFormaModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var formaId = button.getAttribute('data-id');
+        var descricao = button.getAttribute('data-descricao');
+
+        var form = document.getElementById('editForm');
+        var input = document.getElementById('editDescricaoInput');
+
+        var actionUrl = `/forma/edit/${formaId}`;
+        form.setAttribute('action', actionUrl);
+        input.value = descricao;
+    });
+
+    // --- LÓGICA PARA O MODAL DE EXCLUSÃO ---
+    var deleteModal = document.getElementById('confirmDeleteModal');
+    var deleteForm = document.getElementById('deleteForm');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var formaId = button.getAttribute('data-id');
+        var actionUrl = `/forma/delete/${formaId}`;
+        deleteForm.setAttribute('action', actionUrl);
+    });
+
+    var confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    confirmDeleteBtn.addEventListener('click', function() {
+        deleteForm.submit();
+    });
+});
+</script>
 {% endblock %}

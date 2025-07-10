@@ -45,10 +45,16 @@ class FichaTecnica(db.Model):
     ingredientes = db.relationship('FichaTecnicaIngrediente', backref='fichatecnica', cascade="all, delete-orphan")
     formas = db.relationship('Forma', secondary=fichatecnica_forma_association, lazy='subquery',
         backref=db.backref('fichas_tecnicas', lazy=True))
-    vendas = db.relationship('Venda', backref='ficha_tecnica', lazy=True)
+    vendas = db.relationship('Venda', backref='ficha_tecnica', lazy=True, cascade="all, delete-orphan")
 
+    # CORREÇÃO: Métodos movidos para dentro da classe FichaTecnica
     def custo_ingredientes(self):
-        return sum(item.ingrediente.preco_por_unidade() * item.quantidade_usada for item in self.ingredientes)
+        custo = 0
+        for item in self.ingredientes:
+            # Verifica se o ingrediente existe antes de calcular
+            if item.ingrediente:
+                custo += item.ingrediente.preco_por_unidade() * item.quantidade_usada
+        return custo
 
     def custo_mao_de_obra(self):
         tempo_total_minutos = ((self.tempo_producao_horas or 0) * 60) + (self.tempo_producao_minutos or 0)
@@ -84,8 +90,8 @@ class Configuracao(db.Model):
 
     def calcular_custo_hora(self):
         custos_totais_mensais = (self.custo_gas or 0) + (self.custo_luz or 0) + \
-                               (self.custo_agua or 0) + (self.custo_outros or 0) + \
-                               (self.salario_desejado or 0)
+                                (self.custo_agua or 0) + (self.custo_outros or 0) + \
+                                (self.salario_desejado or 0)
         horas_trabalhadas_mes = (self.horas_por_dia or 0) * (self.dias_por_semana or 0) * 4.33
         if horas_trabalhadas_mes > 0:
             self.custo_hora_calculado = custos_totais_mensais / horas_trabalhadas_mes

@@ -526,6 +526,46 @@ def gerar_pdf_orcamento():
         download_name=filename
     )
 
+#para deletar as formas e editar.
+
+# Em app.py
+
+@app.route('/forma/delete/<int:id>', methods=['POST'])
+@login_required
+def deletar_forma(id):
+    forma = Forma.query.get_or_404(id)
+    
+    # VERIFICAÇÃO IMPORTANTE: Checa se a forma está sendo usada em alguma ficha técnica.
+    if forma.fichas_tecnicas:
+        flash('Não é possível excluir esta forma, pois ela já está associada a uma ou mais fichas técnicas.', 'danger')
+        return redirect(url_for('gerenciar_formas'))
+
+    db.session.delete(forma)
+    db.session.commit()
+    flash('Forma deletada com sucesso!', 'success')
+    return redirect(url_for('gerenciar_formas'))
+
+@app.route('/forma/edit/<int:id>', methods=['POST'])
+@login_required
+def editar_forma(id):
+    forma = Forma.query.get_or_404(id)
+    nova_descricao = request.form.get('descricao')
+
+    if not nova_descricao:
+        flash('A descrição não pode ficar em branco.', 'danger')
+        return redirect(url_for('gerenciar_formas'))
+        
+    # Opcional: Verifica se a nova descrição já existe em outra forma
+    forma_existente = Forma.query.filter(Forma.descricao == nova_descricao, Forma.id != id).first()
+    if forma_existente:
+        flash('Já existe uma forma com essa descrição.', 'danger')
+        return redirect(url_for('gerenciar_formas'))
+
+    forma.descricao = nova_descricao
+    db.session.commit()
+    flash('Forma atualizada com sucesso!', 'success')
+    return redirect(url_for('gerenciar_formas'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -31,9 +31,14 @@
                 </a>
                 <div>
                     <span class="badge bg-danger rounded-pill me-2">Custo: R$ {{ "%.2f"|format(ficha.custo_total())|replace('.',',') }}</span>
-                    <form action="{{ url_for('deletar_ficha_tecnica', ficha_tecnica_id=ficha.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja apagar a ficha \'{{ ficha.nome }}\'?');">
-                        <button type="submit" class="btn btn-outline-danger btn-sm">Excluir</button>
-                    </form>
+                    
+                    <button type="button" class="btn btn-danger btn-sm delete-btn" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#confirmDeleteModal"
+                            data-id="{{ ficha.id }}"
+                            data-has-sales="{{ 'true' if ficha.vendas else 'false' }}">
+                        Excluir
+                    </button>
                 </div>
             </li>
             {% else %}
@@ -65,4 +70,51 @@
         </div>
         {% endif %}
     </div>
+
+
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmar Exclusão</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sim, Excluir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form id="deleteForm" method="POST" style="display: none;"></form>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var confirmDeleteModal = document.getElementById('confirmDeleteModal');
+        var deleteForm = document.getElementById('deleteForm');
+
+        confirmDeleteModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var fichaId = button.getAttribute('data-id');
+            var hasSales = button.getAttribute('data-has-sales') === 'true';
+            var modalBody = document.getElementById('modalBody');
+            var actionUrl = `/ficha-tecnica/delete/${fichaId}`;
+            deleteForm.setAttribute('action', actionUrl);
+
+            if (hasSales) {
+                modalBody.innerHTML = "<strong>Atenção!</strong> Esta ficha técnica possui vendas registradas. Ao excluí-la, <strong>todas as vendas associadas também serão permanentemente removidas.</strong><br><br>Você tem certeza que deseja continuar?";
+            } else {
+                modalBody.innerHTML = "Você tem certeza que deseja excluir esta ficha técnica?";
+            }
+        });
+
+        var confirmBtn = document.getElementById('confirmDeleteBtn');
+        confirmBtn.addEventListener('click', function() {
+            deleteForm.submit();
+        });
+    });
+    </script>
 {% endblock %}
