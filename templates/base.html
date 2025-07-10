@@ -8,21 +8,15 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
-
 </head>
 <body>
 
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
-           
-<a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
-
-    <img src="{{ url_for('static', filename='images/logo_principal.png') }}"  height="50"  class="d-inline-block align-text-top me-2">
-    Confeitando com Arte
-</a>
-
-
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='images/logo_principal.png') }}" height="50" class="d-inline-block align-text-top me-2">
+                Confeitando com Arte
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -43,34 +37,53 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('gerenciar_configuracoes') }}">Configurações</a>
                     </li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('gerenciar_vendas') }}">Vendas</a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('gerenciar_vendas') }}">Vendas</a></li>
                     <li class="nav-item">
-    <a class="nav-link" href="{{ url_for('novo_orcamento') }}">Gerar Orçamento</a>
-</li>
+                        <a class="nav-link" href="{{ url_for('novo_orcamento') }}">Gerar Orçamento</a>
+                    </li>
                     <ul class="navbar-nav ms-auto">
-    <li class="nav-item">
-        <a class="nav-link" href="{{ url_for('logout') }}">
-            <i class="bi bi-box-arrow-right"></i> Sair
-        </a>
-    </li>
-</ul>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}">
+                                <i class="bi bi-box-arrow-right"></i> Sair
+                            </a>
+                        </li>
+                    </ul>
                 </ul>
             </div>
         </div>
     </nav>
 
     <main class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% set bg_color = 'bg-primary' %}
+                        {% set title = 'Aviso' %}
+                        {% if category == 'success' %}
+                            {% set bg_color = 'bg-success' %}
+                            {% set title = 'Sucesso!' %}
+                        {% elif category == 'danger' %}
+                            {% set bg_color = 'bg-danger' %}
+                            {% set title = 'Erro!' %}
+                        {% elif category == 'warning' %}
+                            {% set bg_color = 'bg-warning text-dark' %}
+                            {% set title = 'Atenção!' %}
+                        {% endif %}
+
+                        <div class="toast align-items-center text-white {{ bg_color }} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="d-flex">
+                                <div class="toast-body">
+                                    <strong>{{ title }}</strong><br>
+                                    {{ message }}
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
 
         {% block content %}{% endblock %}
     </main>
@@ -81,15 +94,31 @@
         </div>
     </footer>
     
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
+    
     <script>
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
+        document.addEventListener('DOMContentLoaded', function () {
+            // Inicializador de Tooltips (seu código original)
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+
+            // Inicializador de Toasts (código adicionado)
+            const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+            const toastList = toastElList.map(function(toastEl) {
+                const toastOptions = {
+                    animation: true,
+                    delay: 5000 
+                };
+                const toast = new bootstrap.Toast(toastEl, toastOptions);
+                toast.show();
+                return toast;
+            });
+        });
     </script>
+    
+    {% block scripts %}{% endblock %}
     
 </body>
 </html>
