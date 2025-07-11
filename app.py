@@ -9,21 +9,26 @@ from flask import Flask, render_template, request, redirect, url_for, flash, Res
 from sqlalchemy import or_, and_
 from models import db, Ingrediente, FichaTecnica, FichaTecnicaIngrediente, Forma, Configuracao, Compra, Venda, User
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-
-
+from models import User
 from xhtml2pdf import pisa
 from flask import send_file
 from io import BytesIO
+import unicodedata
+from flask_migrate import Migrate
 
 
 
-# --- Configuração Inicial ---
 app = Flask(__name__)
+
+
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'uma-chave-secreta-muito-forte-e-aleatoria')
+
+# Configuração do Banco de Dados
 database_uri = os.environ.get('DATABASE_URL')
 if database_uri and database_uri.startswith("postgres://"):
     database_uri = database_uri.replace("postgres://", "postgresql://", 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or 'sqlite:///confeitando_com_artes.db'
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'uma-chave-secreta-bem-dificil')
+migrate = Migrate(app, db) 
 db.init_app(app)
 
 # --- Configuração do Login ---
@@ -58,18 +63,31 @@ def create_user():
     db.session.commit()
     print(f"Usuário {username} criado com sucesso!")
 
-# --- Rotas de Autenticação ---
+#LOGIN
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
+    
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form['username']).first()
-        if user and user.check_password(request.form['password']):
-            login_user(user)
+        # LINHA DE DEPURAÇÃO: VAMOS IMPRIMIR O QUE VEM DO FORMULÁRIO
+        print("Dados do formulário recebidos:", request.form)
+        
+        user = User.query.filter_by(username=request.form.get('username')).first()
+
+        if user and user.check_password(request.form.get('password')):
+            remember_me = request.form.get('remember')
+            
+            # OUTRA LINHA DE DEPURAÇÃO
+            print(f"Checkbox 'remember' foi marcada? {'Sim' if remember_me else 'Não'}")
+
+            login_user(user, remember=(remember_me is not None))
+            
+            flash('Login realizado com sucesso!', 'success')
             return redirect(url_for('index'))
         else:
             flash('Usuário ou senha inválidos.', 'danger')
+            
     return render_template('login.html')
 
 @app.route('/logout')
@@ -91,39 +109,101 @@ def index():
     ingredientes_pouco_estoque = Ingrediente.query.filter(or_(condicao_critica, condicao_alerta)).order_by(Ingrediente.quantidade_estoque.asc()).all()
     return render_template('index.html', total_fichas=total_fichas, labels_grafico=labels_grafico, dados_grafico=dados_grafico, alertas_estoque=ingredientes_pouco_estoque)
 
+
+
+#para salvar sem acento no banco de dados assim nao aceita duplicação com o mesmo nome com ou sem acento nos ingredientes.#
+
+
+def normalize_text(text):
+    """Remove acentos e converte para minúsculas."""
+    if not text:
+        return ""
+    # Normaliza para o formato NFD (Canonical Decomposition) e remove os caracteres diacríticos (acentos)
+    nfkd_form = unicodedata.normalize('NFD', text)
+    return "".join([c for c in nfkd_form if not unicodedata.combining(c)]).lower()
+
+
+
+
+
+
+
+
+
+
+
 @app.route('/ingredientes', methods=['GET', 'POST'])
 @login_required
 def gerenciar_ingredientes():
     if request.method == 'POST':
-        nome = request.form['nome'].strip()
-        if Ingrediente.query.filter(db.func.lower(Ingrediente.nome) == db.func.lower(nome)).first():
-            flash(f'Erro: O ingrediente "{nome}" já está cadastrado.', 'danger')
-            return redirect(url_for('gerenciar_ingredientes'))
-        tipo_preco = request.form['tipo_preco']
+        nome_original = request.form.get('nome', '').strip()
+        
+        # 1. NORMALIZA O NOME PARA VALIDAÇÃO
+        nome_normalizado = normalize_text(nome_original)
+
+        # 2. VALIDAÇÃO MELHORADA (IGNORA ACENTOS E MAIÚSCULAS/MINÚSCULAS)
+        if Ingrediente.query.filter(Ingrediente.nome_normalizado == nome_normalizado).first():
+            flash(f'Erro: O ingrediente "{nome_original}" já está cadastrado.', 'danger')
+            return redirect(url_for('gerenciar_ingredientes', focus='nome'))
+
+        # --- Lógica de negócio (mantida como a sua original, mas mais segura com .get()) ---
+        tipo_preco = request.form.get('tipo_preco')
         preco_informado = float(request.form.get('preco', 0) or 0)
         unidades_compradas = int(request.form.get('unidades_compradas', 1) or 1)
         tamanho_unidade = float(request.form.get('tamanho_unidade', 0) or 0)
+        
         if tipo_preco == 'total':
             preco_total_pago = preco_informado
-        else:
+        else: # tipo_preco == 'unitario'
             preco_total_pago = preco_informado * unidades_compradas
+        
         estoque_inicial = tamanho_unidade * unidades_compradas
         custo_inicial = preco_total_pago / estoque_inicial if estoque_inicial > 0 else 0
-        novo_ingrediente = Ingrediente(nome=nome, marca=request.form['marca'], unidade_medida=request.form['unidade_medida'], quantidade_estoque=estoque_inicial, custo_medio_por_unidade_base=custo_inicial)
-        primeira_compra = Compra(preco_total_lote=preco_total_pago, unidades_compradas=unidades_compradas, tamanho_unidade=tamanho_unidade, ingrediente=novo_ingrediente)
+        
+        # 3. SALVA O NOME ORIGINAL E O NOME NORMALIZADO
+        novo_ingrediente = Ingrediente(
+            nome=nome_original, 
+            nome_normalizado=nome_normalizado, # Campo novo sendo salvo
+            marca=request.form.get('marca'), 
+            unidade_medida=request.form.get('unidade_medida'), 
+            quantidade_estoque=estoque_inicial, 
+            custo_medio_por_unidade_base=custo_inicial
+        )
+
+        primeira_compra = Compra(
+            preco_total_lote=preco_total_pago, 
+            unidades_compradas=unidades_compradas, 
+            tamanho_unidade=tamanho_unidade, 
+            ingrediente=novo_ingrediente
+        )
+        
         db.session.add(novo_ingrediente)
         db.session.add(primeira_compra)
         db.session.commit()
-        flash(f'Ingrediente "{nome}" cadastrado com sucesso!', 'success')
-        return redirect(url_for('gerenciar_ingredientes'))
+        
+        flash(f'Ingrediente "{nome_original}" cadastrado com sucesso!', 'success')
+        
+        # 4. REDIRECIONA COM PARÂMETRO DE FOCO
+        return redirect(url_for('gerenciar_ingredientes', focus='nome'))
+
+    # --- Lógica para GET (exibição da página) ---
     page = request.args.get('page', 1, type=int)
     q = request.args.get('q', '', type=str)
+    
     query = Ingrediente.query
+    
     if q:
-        query = query.filter(Ingrediente.nome.ilike(f'%{q}%'))
+        # 5. BUSCA MELHORADA (IGNORA ACENTOS E MAIÚSCULAS/MINÚSCULAS)
+        q_normalizado = f"%{normalize_text(q)}%"
+        query = query.filter(Ingrediente.nome_normalizado.ilike(q_normalizado))
+        
     paginacao = query.order_by(Ingrediente.nome).paginate(page=page, per_page=10, error_out=False)
     ingredientes_da_pagina = paginacao.items
-    return render_template('ingredientes.html', ingredientes=ingredientes_da_pagina, paginacao=paginacao, q=q)
+    
+    return render_template('ingredientes.html', 
+                           ingredientes=ingredientes_da_pagina, 
+                           paginacao=paginacao, 
+                           q=q)
 
 @app.route('/ingrediente/adicionar-estoque/<int:ingrediente_id>', methods=['POST'])
 @login_required
@@ -182,6 +262,36 @@ def historico_compras(ingrediente_id):
     historico = Compra.query.filter_by(ingrediente_id=ingrediente.id).order_by(Compra.data_compra.desc()).all()
     return render_template('historico_compras.html', ingrediente=ingrediente, historico=historico)
 
+#para fazer compras dos ingredientes baixos
+@app.route('/lista-de-compras')
+@login_required
+def lista_de_compras():
+    # Define os limites de estoque baixo
+    limite_unidade = 5
+    limite_peso_volume = 100 # para g e ml
+
+    # --- CONSULTA CORRIGIDA ---
+    # Busca ingredientes que atendem a uma das duas condições abaixo
+    ingredientes_a_comprar = Ingrediente.query.filter(
+        db.or_(
+            # Condição 1: Para itens contados por unidade
+            db.and_(
+                Ingrediente.unidade_medida == 'unid', 
+                Ingrediente.quantidade_estoque <= limite_unidade
+            ),
+            # Condição 2: Para itens por peso ou volume
+            db.and_(
+                Ingrediente.unidade_medida.in_(['g', 'ml']), 
+                Ingrediente.quantidade_estoque <= limite_peso_volume
+            )
+        )
+    ).order_by(Ingrediente.nome).all()
+
+    return render_template('lista_de_compras.html', ingredientes=ingredientes_a_comprar)
+
+
+
+
 @app.route('/formas', methods=['GET', 'POST'])
 @login_required
 def gerenciar_formas():
@@ -195,8 +305,21 @@ def gerenciar_formas():
             db.session.commit()
             flash('Forma adicionada com sucesso!', 'success')
         return redirect(url_for('gerenciar_formas'))
-    formas = Forma.query.order_by(Forma.descricao).all()
-    return render_template('formas.html', formas=formas)
+    
+    # --- LÓGICA ATUALIZADA DE BUSCA E PAGINAÇÃO ---
+    page = request.args.get('page', 1, type=int)
+    q = request.args.get('q', '', type=str)
+    
+    # A consulta agora só busca formas ativas
+    query = Forma.query.filter_by(is_active=True)
+    if q:
+        query = query.filter(Forma.descricao.ilike(f'%{q}%'))
+
+    paginacao = query.order_by(Forma.descricao).paginate(page=page, per_page=5, error_out=False)
+    formas_da_pagina = paginacao.items
+    
+    return render_template('formas.html', formas=formas_da_pagina, paginacao=paginacao, q=q)
+
 
 @app.route('/configuracoes', methods=['GET', 'POST'])
 @login_required
@@ -243,6 +366,7 @@ def gerenciar_fichas_tecnicas():
 def detalhe_ficha_tecnica(ficha_tecnica_id):
     ficha = FichaTecnica.query.get_or_404(ficha_tecnica_id)
     todos_ingredientes = Ingrediente.query.order_by(Ingrediente.nome).all()
+    todas_formas = Forma.query.filter_by(is_active=True).order_by(Forma.descricao).all()
     todas_formas = Forma.query.order_by(Forma.descricao).all()
     if request.method == 'POST':
         if 'ingrediente_id' in request.form:
@@ -467,12 +591,6 @@ def novo_orcamento():
 
 
 
-# Em app.py
-
-# Em app.py
-
-# Em app.py
-
 @app.route('/orcamento/gerar-pdf', methods=['POST'])
 @login_required
 def gerar_pdf_orcamento():
@@ -534,37 +652,32 @@ def gerar_pdf_orcamento():
 @login_required
 def deletar_forma(id):
     forma = Forma.query.get_or_404(id)
-    
-    # VERIFICAÇÃO IMPORTANTE: Checa se a forma está sendo usada em alguma ficha técnica.
-    if forma.fichas_tecnicas:
-        flash('Não é possível excluir esta forma, pois ela já está associada a uma ou mais fichas técnicas.', 'danger')
-        return redirect(url_for('gerenciar_formas'))
-
-    db.session.delete(forma)
+    # --- NOVA LÓGICA DE "EXCLUSÃO SUAVE" ---
+    forma.is_active = False
     db.session.commit()
-    flash('Forma deletada com sucesso!', 'success')
+    flash('Forma excluída com sucesso! Ela não aparecerá para novas fichas.', 'success')
     return redirect(url_for('gerenciar_formas'))
 
 @app.route('/forma/edit/<int:id>', methods=['POST'])
 @login_required
 def editar_forma(id):
     forma = Forma.query.get_or_404(id)
-    nova_descricao = request.form.get('descricao')
-
+    nova_descricao = request.form.get('descricao', '').strip()
     if not nova_descricao:
-        flash('A descrição não pode ficar em branco.', 'danger')
+        flash('A descrição não pode ser vazia.', 'danger')
         return redirect(url_for('gerenciar_formas'))
-        
-    # Opcional: Verifica se a nova descrição já existe em outra forma
-    forma_existente = Forma.query.filter(Forma.descricao == nova_descricao, Forma.id != id).first()
-    if forma_existente:
-        flash('Já existe uma forma com essa descrição.', 'danger')
-        return redirect(url_for('gerenciar_formas'))
-
-    forma.descricao = nova_descricao
-    db.session.commit()
-    flash('Forma atualizada com sucesso!', 'success')
+    
+    outra_forma = Forma.query.filter(Forma.id != id, db.func.lower(Forma.descricao) == db.func.lower(nova_descricao)).first()
+    if outra_forma:
+        flash('Já existe outra forma com esta descrição.', 'danger')
+    else:
+        forma.descricao = nova_descricao
+        db.session.commit()
+        flash('Forma atualizada com sucesso!', 'success')
     return redirect(url_for('gerenciar_formas'))
+
+
+
 
 
 if __name__ == '__main__':

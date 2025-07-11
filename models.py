@@ -21,6 +21,7 @@ class FichaTecnicaIngrediente(db.Model):
 class Ingrediente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False, unique=True)
+    nome_normalizado = db.Column(db.String(100), nullable=False, index=True)
     marca = db.Column(db.String(100), nullable=True)
     unidade_medida = db.Column(db.String(20), nullable=False)
     quantidade_estoque = db.Column(db.Float, nullable=False, default=0.0)
@@ -76,6 +77,7 @@ class FichaTecnica(db.Model):
 class Forma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     descricao = db.Column(db.String(100), unique=True, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
 
 class Configuracao(db.Model):
     id = db.Column(db.Integer, primary_key=True)

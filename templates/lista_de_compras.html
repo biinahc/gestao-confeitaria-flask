@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Lista de Compras{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-basket-fill text-primary"></i> Lista de Compras Sugerida</h2>
+        <button class="btn btn-primary d-print-none" onclick="window.print()">
+            <i class="bi bi-printer-fill"></i> Imprimir Lista
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Itens com Estoque Baixo</div>
+        <ul class="list-group list-group-flush">
+            {% if ingredientes %}
+                {% for ingrediente in ingredientes %}
+                    <li class="list-group-item">
+                        <input class="form-check-input me-2" type="checkbox" value="" id="item-{{ ingrediente.id }}">
+                        <label class="form-check-label" for="item-{{ ingrediente.id }}">
+                            <strong>{{ ingrediente.nome }}</strong>
+                            <small class="text-danger ms-2">(Estoque atual: {{ ingrediente.quantidade_estoque|round(2) }} {{ ingrediente.unidade_medida }})</small>
+                        </label>
+                    </li>
+                {% endfor %}
+            {% else %}
+                <li class="list-group-item text-center text-muted">Nenhum item com estoque baixo no momento. Parabéns!</li>
+            {% endif %}
+        </ul>
+    </div>
+{% endblock %}

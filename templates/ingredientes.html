@@ -144,10 +144,12 @@
                 const ingredienteId = button.getAttribute('data-id');
                 const modalBody = document.getElementById('modalBody');
 
+                // Define a URL de action do formulário oculto
                 const actionUrl = `/ingrediente/delete/${ingredienteId}`;
                 deleteForm.setAttribute('action', actionUrl);
                 
-            
+                // Define a mensagem padrão. Você pode adicionar uma verificação se o ingrediente
+                // estiver em uso aqui, se necessário, passando um atributo 'data-is-in-use' no botão.
                 modalBody.innerHTML = "<strong>Atenção!</strong> Ao excluir um ingrediente, todo o seu histórico de compras será perdido e ele será removido de todas as fichas técnicas. Esta ação não pode ser desfeita.<br><br>Você tem certeza que deseja continuar?";
             });
 
@@ -155,7 +157,7 @@
             confirmDeleteBtn.addEventListener('click', function() {
                 deleteForm.submit();
             });
-            // --- FIM DA LÓGICA DO MODAL ---
+            
         });
     </script>
 {% endblock %}

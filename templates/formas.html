@@ -16,106 +16,124 @@
     </div>
 
     <div class="card">
-        <div class="card-header">Formas Cadastradas</div>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            Formas Cadastradas
+            <!-- FORMULÁRIO DE BUSCA ADICIONADO -->
+            <form method="GET" action="{{ url_for('gerenciar_formas') }}" class="d-flex">
+                <input type="search" name="q" class="form-control me-2" placeholder="Procurar forma..." value="{{ q or '' }}">
+                <button class="btn btn-outline-primary" type="submit">Buscar</button>
+            </form>
+        </div>
         <ul class="list-group list-group-flush">
+            <!-- O loop agora usa a variável 'formas' que vem da paginação -->
             {% for forma in formas %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <span>{{ forma.descricao }}</span>
                     <div>
-                        <button type="button" class="btn btn-warning btn-sm" 
-                                data-bs-toggle="modal" 
-                                data-bs-target="#editFormaModal"
-                                data-id="{{ forma.id }}"
-                                data-descricao="{{ forma.descricao }}">
+                        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editFormaModal" data-id="{{ forma.id }}" data-descricao="{{ forma.descricao }}">
                             Editar
                         </button>
-                        <button type="button" class="btn btn-danger btn-sm"
-                                data-bs-toggle="modal"
-                                data-bs-target="#confirmDeleteModal"
-                                data-id="{{ forma.id }}">
+                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-id="{{ forma.id }}">
                             Excluir
                         </button>
                     </div>
                 </li>
             {% else %}
-                <li class="list-group-item text-center">Nenhuma forma cadastrada.</li>
+                <li class="list-group-item text-center">Nenhuma forma encontrada.</li>
             {% endfor %}
         </ul>
-    </div>
-
-<div class="modal fade" id="editFormaModal" tabindex="-1" aria-labelledby="editFormaModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="editFormaModalLabel">Editar Forma</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <form id="editForm" method="POST">
-        <div class="modal-body">
-            <label for="editDescricaoInput" class="form-label">Descrição</label>
-            <input type="text" class="form-control" name="descricao" id="editDescricaoInput" required>
+        
+        <!-- CONTROLES DA PAGINAÇÃO ADICIONADOS -->
+        {% if paginacao and paginacao.pages > 1 %}
+        <div class="card-footer d-flex justify-content-center">
+            <nav aria-label="Navegação das páginas de formas">
+                <ul class="pagination mb-0">
+                    <li class="page-item {% if not paginacao.has_prev %}disabled{% endif %}"><a class="page-link" href="{{ url_for('gerenciar_formas', page=paginacao.prev_num, q=q) }}">Anterior</a></li>
+                    {% for page_num in paginacao.iter_pages() %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == paginacao.page %}active{% endif %}"><a class="page-link" href="{{ url_for('gerenciar_formas', page=page_num, q=q) }}">{{ page_num }}</a></li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not paginacao.has_next %}disabled{% endif %}"><a class="page-link" href="{{ url_for('gerenciar_formas', page=paginacao.next_num, q=q) }}">Próxima</a></li>
+                </ul>
+            </nav>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        {% endif %}
+    </div>
+
+    <!-- Modal de Edição -->
+    <div class="modal fade" id="editFormaModal" tabindex="-1" aria-labelledby="editFormaModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editFormaModalLabel">Editar Forma</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="editForm" method="POST">
+            <div class="modal-body">
+                <label for="editDescricaoInput" class="form-label">Descrição</label>
+                <input type="text" class="form-control" name="descricao" id="editDescricaoInput" required>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+            </div>
+          </form>
         </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-
-<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmar Exclusão</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        Você tem certeza que deseja excluir esta forma?
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sim, Excluir</button>
       </div>
     </div>
-  </div>
-</div>
 
-<form id="deleteForm" method="POST" style="display: none;"></form>
+    <!-- Modal de Confirmação de Exclusão -->
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmar Exclusão</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            Você tem certeza que deseja excluir esta forma? Ela não poderá ser usada em novas fichas técnicas.
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sim, Excluir</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // --- LÓGICA PARA O MODAL DE EDIÇÃO ---
-    var editModal = document.getElementById('editFormaModal');
-    editModal.addEventListener('show.bs.modal', function (event) {
-        var button = event.relatedTarget;
-        var formaId = button.getAttribute('data-id');
-        var descricao = button.getAttribute('data-descricao');
+    <!-- Formulário 'fantasma' para a exclusão -->
+    <form id="deleteForm" method="POST" style="display: none;"></form>
 
-        var form = document.getElementById('editForm');
-        var input = document.getElementById('editDescricaoInput');
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var editModal = document.getElementById('editFormaModal');
+        editModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var formaId = button.getAttribute('data-id');
+            var descricao = button.getAttribute('data-descricao');
+            var form = document.getElementById('editForm');
+            var input = document.getElementById('editDescricaoInput');
+            var actionUrl = `/forma/edit/${formaId}`;
+            form.setAttribute('action', actionUrl);
+            input.value = descricao;
+        });
 
-        var actionUrl = `/forma/edit/${formaId}`;
-        form.setAttribute('action', actionUrl);
-        input.value = descricao;
+        var deleteModal = document.getElementById('confirmDeleteModal');
+        var deleteForm = document.getElementById('deleteForm');
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var formaId = button.getAttribute('data-id');
+            var actionUrl = `/forma/delete/${formaId}`;
+            deleteForm.setAttribute('action', actionUrl);
+        });
+
+        var confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        confirmDeleteBtn.addEventListener('click', function() {
+            deleteForm.submit();
+        });
     });
-
-    // --- LÓGICA PARA O MODAL DE EXCLUSÃO ---
-    var deleteModal = document.getElementById('confirmDeleteModal');
-    var deleteForm = document.getElementById('deleteForm');
-    deleteModal.addEventListener('show.bs.modal', function (event) {
-        var button = event.relatedTarget;
-        var formaId = button.getAttribute('data-id');
-        var actionUrl = `/forma/delete/${formaId}`;
-        deleteForm.setAttribute('action', actionUrl);
-    });
-
-    var confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-    confirmDeleteBtn.addEventListener('click', function() {
-        deleteForm.submit();
-    });
-});
-</script>
+    </script>
 {% endblock %}
