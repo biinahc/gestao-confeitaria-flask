@@ -343,52 +343,120 @@ def gerenciar_configuracoes():
         return redirect(url_for('gerenciar_configuracoes'))
     return render_template('configuracoes.html', config=config)
 
+# Em app.py
+
+# (Lembre-se de ter a função normalize_text e os imports necessários acima)
+
 @app.route('/fichas-tecnicas', methods=['GET', 'POST'])
 @login_required
 def gerenciar_fichas_tecnicas():
     if request.method == 'POST':
-        nova_ficha = FichaTecnica(nome=request.form['nome'], rendimento=request.form['rendimento'], observacoes=request.form['observacoes'])
+        nome_original = request.form.get('nome', '').strip()
+
+        # --- Bloco de Validação Adicionado ---
+        if not nome_original:
+            flash('O nome da ficha técnica não pode estar em branco.', 'danger')
+            return redirect(url_for('gerenciar_fichas_tecnicas'))
+
+        nome_normalizado = normalize_text(nome_original)
+        
+        ficha_existente = FichaTecnica.query.filter(FichaTecnica.nome_normalizado == nome_normalizado).first()
+        if ficha_existente:
+            flash(f'Uma ficha técnica com o nome "{nome_original}" já existe.', 'danger')
+            return redirect(url_for('gerenciar_fichas_tecnicas'))
+        # --- Fim do Bloco de Validação ---
+
+        # Cria a nova ficha se a validação passar
+        nova_ficha = FichaTecnica(
+            nome=nome_original,
+            nome_normalizado=nome_normalizado, # Salva a versão normalizada
+            rendimento=request.form.get('rendimento'),
+            observacoes=request.form.get('observacoes')
+        )
         db.session.add(nova_ficha)
         db.session.commit()
+        
         flash('Ficha Técnica criada com sucesso!', 'success')
-        return redirect(url_for('gerenciar_fichas_tecnicas'))
+        # Redireciona para a página de detalhes da nova ficha, que é mais útil
+        return redirect(url_for('detalhe_ficha_tecnica', ficha_tecnica_id=nova_ficha.id))
+
+    # --- Lógica para GET (exibição da lista) ---
     page = request.args.get('page', 1, type=int)
     q = request.args.get('q', '', type=str)
+    
     query = FichaTecnica.query
+    
+    # Busca agora é feita no campo normalizado para ignorar acentos
     if q:
-        query = query.filter(FichaTecnica.nome.ilike(f'%{q}%'))
+        q_normalizado = f"%{normalize_text(q)}%"
+        query = query.filter(FichaTecnica.nome_normalizado.ilike(q_normalizado))
+        
     paginacao = query.order_by(FichaTecnica.nome).paginate(page=page, per_page=5, error_out=False)
     fichas_da_pagina = paginacao.items
-    return render_template('fichas_tecnicas.html', fichas_tecnicas=fichas_da_pagina, paginacao=paginacao, q=q)
+    
+    return render_template('fichas_tecnicas.html', 
+                           fichas_tecnicas=fichas_da_pagina, 
+                           paginacao=paginacao, 
+                           q=q)
+
+# Em app.py
 
 @app.route('/ficha-tecnica/<int:ficha_tecnica_id>', methods=['GET', 'POST'])
 @login_required
 def detalhe_ficha_tecnica(ficha_tecnica_id):
     ficha = FichaTecnica.query.get_or_404(ficha_tecnica_id)
     todos_ingredientes = Ingrediente.query.order_by(Ingrediente.nome).all()
-    todas_formas = Forma.query.filter_by(is_active=True).order_by(Forma.descricao).all()
+    
+    # CORREÇÃO: Removida a linha duplicada que definia 'todas_formas'
     todas_formas = Forma.query.order_by(Forma.descricao).all()
+
     if request.method == 'POST':
-        if 'ingrediente_id' in request.form:
-            nova_associacao = FichaTecnicaIngrediente(fichatecnica_id=ficha.id, ingrediente_id=int(request.form['ingrediente_id']), quantidade_usada=float(request.form['quantidade_usada']))
+        # Verifica se o formulário de "Salvar Detalhes" foi enviado
+        if 'atualizar_ficha' in request.form:
+            ficha.rendimento = request.form.get('rendimento')
+            ficha.observacoes = request.form.get('observacoes')
+            
+            peso_str = request.form.get('peso_final_gramas')
+            ficha.peso_final_gramas = float(peso_str) if peso_str else None
+
+            ficha.tempo_producao_horas = int(request.form.get('tempo_producao_horas', 0) or 0)
+            ficha.tempo_producao_minutos = int(request.form.get('tempo_producao_minutos', 0) or 0)
+            
+            ficha.incluir_custo_mao_de_obra = 'incluir_custo_mao_de_obra' in request.form
+            
+            ids_formas_selecionadas = request.form.getlist('formas_selecionadas')
+            ficha.formas = Forma.query.filter(Forma.id.in_(ids_formas_selecionadas)).all()
+            
+            db.session.commit()
+            flash('Ficha Técnica atualizada com sucesso!', 'success')
+        
+        # Verifica se o formulário de "Adicionar Ingrediente" foi enviado
+        elif 'ingrediente_id' in request.form:
+            nova_associacao = FichaTecnicaIngrediente(
+                fichatecnica_id=ficha.id, 
+                ingrediente_id=int(request.form['ingrediente_id']), 
+                quantidade_usada=float(request.form['quantidade_usada'])
+            )
             db.session.add(nova_associacao)
             db.session.commit()
             flash('Ingrediente adicionado à ficha!', 'success')
-        elif 'atualizar_ficha' in request.form:
-            ficha.rendimento = request.form.get('rendimento')
-            ficha.observacoes = request.form.get('observacoes')
-            ficha.peso_final_gramas = float(request.form.get('peso_final_gramas')) if request.form.get('peso_final_gramas') else None
-            ficha.tempo_producao_horas = int(request.form.get('tempo_producao_horas',0) or 0)
-            ficha.tempo_producao_minutos = int(request.form.get('tempo_producao_minutos',0) or 0)
-            ficha.incluir_custo_mao_de_obra = 'incluir_custo_mao_de_obra' in request.form
-            ids_formas_selecionadas = request.form.getlist('formas_selecionadas')
-            ficha.formas = [Forma.query.get(id_forma) for id_forma in ids_formas_selecionadas]
-            db.session.commit()
-            flash('Ficha Técnica atualizada com sucesso!', 'info')
+
         return redirect(url_for('detalhe_ficha_tecnica', ficha_tecnica_id=ficha.id))
+
+    # Lógica para GET (exibição da página)
     page_ing = request.args.get('page_ing', 1, type=int)
     paginacao_ingredientes = FichaTecnicaIngrediente.query.filter_by(fichatecnica_id=ficha.id).paginate(page=page_ing, per_page=5, error_out=False)
-    return render_template('ficha_tecnica_detalhe.html', ficha=ficha, todos_ingredientes=todos_ingredientes, todas_formas=todas_formas, paginacao_ingredientes=paginacao_ingredientes)
+    
+    # CORREÇÃO: Apontando para o nome de arquivo correto que você usa
+    return render_template(
+        'ficha_tecnica_detalhe.html', 
+        ficha=ficha, 
+        todos_ingredientes=todos_ingredientes, 
+        todas_formas=todas_formas, 
+        paginacao_ingredientes=paginacao_ingredientes
+    )
+
+
 
 @app.route('/ficha-tecnica/produzir/<int:ficha_tecnica_id>', methods=['POST'])
 @login_required

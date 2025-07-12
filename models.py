@@ -37,6 +37,7 @@ class Ingrediente(db.Model):
 class FichaTecnica(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(150), nullable=False)
+    nome_normalizado = db.Column(db.String(150), nullable=False, index=True)
     rendimento = db.Column(db.String(100), nullable=True)
     observacoes = db.Column(db.Text, nullable=True)
     peso_final_gramas = db.Column(db.Float, nullable=True)

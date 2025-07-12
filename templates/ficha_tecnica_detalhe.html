@@ -4,7 +4,10 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">{{ ficha.nome }}</h2>
         <div>
-            <a href="{{ url_for('exportar_ficha_tecnica', ficha_tecnica_id=ficha.id) }}" class="btn btn-success me-2">📄 Exportar para Excel</a>
+            <button type="button" id="btn-salvar-detalhes" class="btn btn-primary me-2">
+                <i class="bi bi-save-fill"></i> Salvar Detalhes
+            </button>
+            <a href="{{ url_for('exportar_ficha_tecnica', ficha_tecnica_id=ficha.id) }}" class="btn btn-success">📄 Exportar para Excel</a>
             <a href="{{ url_for('gerenciar_fichas_tecnicas') }}" class="btn btn-secondary">Voltar</a>
         </div>
     </div>
@@ -42,41 +45,48 @@
 
         <div class="col-lg-7">
             <div class="card mb-4">
-    <div class="card-header">Ingredientes da Ficha Técnica</div>
-    <table class="table mb-0 table-striped">
-        <thead class="table-light"><tr><th>Ingrediente</th><th>Quantidade</th><th>Custo</th><th>Ações</th></tr></thead>
-        <tbody>
-            {% for item in paginacao_ingredientes.items %}
-            <tr>
-                <td>{{ item.ingrediente.nome }}</td>
-                <td>{{ item.quantidade_usada }} {{ item.ingrediente.unidade_medida }}</td>
-                <td>R$ {{ "%.2f"|format(item.ingrediente.preco_por_unidade() * item.quantidade_usada)|replace('.', ',') }}</td>
-                <td><form action="{{ url_for('deletar_item_ficha', item_id=item.id) }}" method="POST" class="d-inline"><button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Remover este ingrediente da ficha?');"><i class="bi bi-trash-fill"></i></button></form></td>
-            </tr>
-            {% else %}
-            <tr><td colspan="4" class="text-center">Nenhum ingrediente adicionado ainda.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    
-    {% if paginacao_ingredientes and paginacao_ingredientes.pages > 1 %}
-    <div class="card-footer d-flex justify-content-center py-2">
-        <nav aria-label="Navegação dos ingredientes">
-            <ul class="pagination pagination-sm mb-0">
-                {% for page_num in paginacao_ingredientes.iter_pages() %}
-                    {% if page_num %}
-                        <li class="page-item {% if page_num == paginacao_ingredientes.page %}active{% endif %}">
-                            <a class="page-link" href="{{ url_for('detalhe_ficha_tecnica', ficha_tecnica_id=ficha.id, page_ing=page_num) }}">{{ page_num }}</a>
-                        </li>
-                    {% else %}
-                        <li class="page-item disabled"><span class="page-link">…</span></li>
-                    {% endif %}
-                {% endfor %}
-            </ul>
-        </nav>
-    </div>
-    {% endif %}
-
+                <div class="card-header">Ingredientes da Ficha Técnica</div>
+                <table class="table mb-0 table-striped">
+                    <thead class="table-light"><tr><th>Ingrediente</th><th>Quantidade</th><th>Custo</th><th>Ações</th></tr></thead>
+                    <tbody>
+                        {% for item in paginacao_ingredientes.items %}
+                        <tr>
+                            <td>{{ item.ingrediente.nome }}</td>
+                            <td>{{ item.quantidade_usada }} {{ item.ingrediente.unidade_medida }}</td>
+                            <td>R$ {{ "%.2f"|format(item.ingrediente.preco_por_unidade() * item.quantidade_usada)|replace('.', ',') }}</td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm delete-btn" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#confirmDeleteModal"
+                                        data-id="{{ item.id }}"
+                                        data-name="{{ item.ingrediente.nome }}">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center">Nenhum ingrediente adicionado ainda.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                {% if paginacao_ingredientes and paginacao_ingredientes.pages > 1 %}
+                <div class="card-footer d-flex justify-content-center py-2">
+                    <nav aria-label="Navegação dos ingredientes">
+                        <ul class="pagination pagination-sm mb-0">
+                            {% for page_num in paginacao_ingredientes.iter_pages() %}
+                                {% if page_num %}
+                                    <li class="page-item {% if page_num == paginacao_ingredientes.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('detalhe_ficha_tecnica', ficha_tecnica_id=ficha.id, page_ing=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
             </div>
 
             <div class="row">
@@ -111,12 +121,11 @@
     <div class="card mt-4">
         <div class="card-header">Detalhes e Modo de Preparo</div>
         <div class="card-body">
-            <form method="POST">
+            <form method="POST" id="form-detalhes">
                 <input type="hidden" name="atualizar_ficha" value="1">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4"><label for="rendimento" class="form-label">Rendimento Descritivo</label><input type="text" class="form-control" name="rendimento" value="{{ ficha.rendimento or '' }}"></div>
                     <div class="col-md-4"><label for="peso_final_gramas" class="form-label">Peso Final (g)</label><input type="number" step="0.01" class="form-control" name="peso_final_gramas" value="{{ ficha.peso_final_gramas or '' }}"></div>
-                    
                     <div class="col-md-4">
                         <label class="form-label">Tempo de Produção</label>
                         <div class="input-group">
@@ -126,41 +135,89 @@
                             <span class="input-group-text">min</span>
                         </div>
                     </div>
-                    
                     <div class="col-md-8"><label for="formas_selecionadas" class="form-label">Formas Utilizadas</label><select name="formas_selecionadas" class="form-select" multiple size="3">{% for forma in todas_formas %}<option value="{{ forma.id }}" {% if forma in ficha.formas %}selected{% endif %}>{{ forma.descricao }}</option>{% endfor %}</select></div>
                     <div class="col-md-4 d-flex align-items-center"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" name="incluir_custo_mao_de_obra" value="on" {% if ficha.incluir_custo_mao_de_obra %}checked{% endif %}><label class="form-check-label" for="incluir_custo_mao_de_obra">Incluir Mão de Obra?</label></div></div>
-                    <div class="col-12"><label for="observacoes" class="form-label">Observações / Modo de Preparo</label><textarea class="form-control" name="observacoes" rows="3">{{ ficha.observacoes or '' }}</textarea></div>
-                    <div class="col-12"><button type="submit" class="btn btn-info">Salvar Detalhes</button></div>
+                    <div class="col-12"><label for="observacoes" class="form-label">Modo de Preparo/Observações:</label><textarea class="form-control" name="observacoes" rows="3">{{ ficha.observacoes or '' }}</textarea></div>
                 </div>
             </form>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const custoTotalEl = document.getElementById('custo-total');
-            const margemInput = document.getElementById('margem-lucro');
-            const precoVendaEl = document.getElementById('preco-venda');
-            const lucroEstimadoEl = document.getElementById('lucro-estimado');
-            if (custoTotalEl) {
-                const custoText = custoTotalEl.textContent.replace('R$', '').trim().replace(',', '.');
-                const custoTotal = parseFloat(custoText) || 0;
-                function calcularPrecoFinal() {
-                    const margem = parseFloat(margemInput.value) || 0;
-                    const valorDoLucro = custoTotal * (margem / 100);
-                    const precoFinal = custoTotal + valorDoLucro;
-                    lucroEstimadoEl.textContent = `+ R$ ${valorDoLucro.toFixed(2).replace('.', ',')}`;
-                    precoVendaEl.textContent = `R$ ${precoFinal.toFixed(2).replace('.', ',')}`;
-                }
-                calcularPrecoFinal();
-                margemInput.addEventListener('input', calcularPrecoFinal);
-            }
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmar Remoção</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sim, Remover</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form id="deleteForm" method="POST" style="display: none;"></form>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Lógica para o botão SALVAR DETALHES
+    const btnSalvar = document.getElementById('btn-salvar-detalhes');
+    const formDetalhes = document.getElementById('form-detalhes');
+    if (btnSalvar && formDetalhes) {
+        btnSalvar.addEventListener('click', function() {
+            formDetalhes.submit();
+        });
+    }
+
+    // Lógica para o CÁLCULO DE PREÇO
+    const custoTotalEl = document.getElementById('custo-total');
+    const margemInput = document.getElementById('margem-lucro');
+    const precoVendaEl = document.getElementById('preco-venda');
+    const lucroEstimadoEl = document.getElementById('lucro-estimado');
+    if (custoTotalEl && margemInput) {
+        const custoText = custoTotalEl.textContent.replace('R$', '').trim().replace(',', '.');
+        const custoTotal = parseFloat(custoText) || 0;
+        function calcularPrecoFinal() {
+            const margem = parseFloat(margemInput.value) || 0;
+            const valorDoLucro = custoTotal * (margem / 100);
+            const precoFinal = custoTotal + valorDoLucro;
+            lucroEstimadoEl.textContent = `+ R$ ${valorDoLucro.toFixed(2).replace('.', ',')}`;
+            precoVendaEl.textContent = `R$ ${precoFinal.toFixed(2).replace('.', ',')}`;
+        }
+        calcularPrecoFinal();
+        margemInput.addEventListener('input', calcularPrecoFinal);
+    }
+
+    // Lógica para o MODAL DE EXCLUSÃO
+    const deleteModal = document.getElementById('confirmDeleteModal');
+    if (deleteModal) {
+        const deleteForm = document.getElementById('deleteForm');
+        const modalBody = document.getElementById('modalBody');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const itemId = button.getAttribute('data-id');
+            const itemName = button.getAttribute('data-name');
+            
+            modalBody.innerHTML = `Tem certeza que deseja remover o ingrediente <strong>${itemName}</strong> desta ficha técnica?`;
+            
+            const actionUrl = `{{ url_for('deletar_item_ficha', item_id=0) }}`.replace('0', itemId);
+            deleteForm.setAttribute('action', actionUrl);
         });
 
-
-        
-    </script>
-
-
-
+        confirmDeleteBtn.addEventListener('click', function() {
+            deleteForm.submit();
+        });
+    }
+});
+</script>
 {% endblock %}
