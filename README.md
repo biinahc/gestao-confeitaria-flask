@@ -89,6 +89,15 @@ Uma visão geral das principais telas e funcionalidades da aplicação.
 
 ---
 
+---
+
+**10. Versão Mobile**
+*O sistema é totalmente responsivo, adaptando-se a telas de celulares para gestão em qualquer lugar.*
+
+![Design Responsivo para Celulares](./screenshots/10-versao-mobile.png)
+
+---
+
 ### 🚀 Como Executar o Projeto Localmente
 
 Siga os passos abaixo para configurar e rodar a aplicação no seu ambiente local.
