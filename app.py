@@ -18,6 +18,7 @@ from flask_migrate import Migrate
 
 
 
+
 app = Flask(__name__)
 
 
@@ -97,20 +98,48 @@ def logout():
     return redirect(url_for('login'))
 
 # --- ROTAS PRINCIPAIS E DE GESTÃO ---
+# Em app.py
+
 @app.route('/')
 @login_required
 def index():
-    ingredientes_estoque_grafico = Ingrediente.query.order_by(Ingrediente.quantidade_estoque.desc()).limit(10).all()
+    # --- Lógica para o Gráfico de Estoque (Mantida) ---
+    ingredientes_estoque_grafico = Ingrediente.query.order_by(Ingrediente.quantidade_estoque.desc()).limit(5).all()
     labels_grafico = [ing.nome for ing in ingredientes_estoque_grafico]
     dados_grafico = [ing.quantidade_estoque for ing in ingredientes_estoque_grafico]
+    
+    # --- Contagem de Fichas (Mantida) ---
     total_fichas = FichaTecnica.query.count()
-    condicao_critica = or_(and_(Ingrediente.unidade_medida.in_(['g', 'ml']), Ingrediente.quantidade_estoque <= 100), and_(Ingrediente.unidade_medida == 'unid', Ingrediente.quantidade_estoque <= 5))
-    condicao_alerta = or_(and_(Ingrediente.unidade_medida.in_(['g', 'ml']), Ingrediente.quantidade_estoque > 100, Ingrediente.quantidade_estoque <= 500), and_(Ingrediente.unidade_medida == 'unid', Ingrediente.quantidade_estoque > 5, Ingrediente.quantidade_estoque <= 15))
-    ingredientes_pouco_estoque = Ingrediente.query.filter(or_(condicao_critica, condicao_alerta)).order_by(Ingrediente.quantidade_estoque.asc()).all()
-    return render_template('index.html', total_fichas=total_fichas, labels_grafico=labels_grafico, dados_grafico=dados_grafico, alertas_estoque=ingredientes_pouco_estoque)
 
+    # --- LÓGICA DE PAGINAÇÃO PARA OS ALERTAS (MODIFICADA) ---
+    
+    # 1. Pega o número da página para os alertas a partir da URL
+    page_alertas = request.args.get('page_alertas', 1, type=int)
 
+    # 2. Define as mesmas condições de antes para estoque baixo
+    condicao_critica = db.or_(
+        db.and_(Ingrediente.unidade_medida.in_(['g', 'ml']), Ingrediente.quantidade_estoque <= 100),
+        db.and_(Ingrediente.unidade_medida == 'unid', Ingrediente.quantidade_estoque <= 5)
+    )
+    condicao_alerta = db.or_(
+        db.and_(Ingrediente.unidade_medida.in_(['g', 'ml']), Ingrediente.quantidade_estoque > 100, Ingrediente.quantidade_estoque <= 500),
+        db.and_(Ingrediente.unidade_medida == 'unid', Ingrediente.quantidade_estoque > 5, Ingrediente.quantidade_estoque <= 15)
+    )
+    
+    # 3. Cria a query base para os alertas
+    query_alertas = Ingrediente.query.filter(db.or_(condicao_critica, condicao_alerta)).order_by(Ingrediente.quantidade_estoque.asc())
+    
+    # 4. Pagina os resultados, mostrando 5 por página
+    paginacao_alertas = query_alertas.paginate(page=page_alertas, per_page=5, error_out=False)
 
+    # 5. Passa o objeto de paginação para o template, em vez da lista completa
+    return render_template(
+        'index.html', 
+        total_fichas=total_fichas, 
+        labels_grafico=labels_grafico, 
+        dados_grafico=dados_grafico, 
+        paginacao_alertas=paginacao_alertas  # Nome da variável alterado para refletir a paginação
+    )
 #para salvar sem acento no banco de dados assim nao aceita duplicação com o mesmo nome com ou sem acento nos ingredientes.#
 
 
