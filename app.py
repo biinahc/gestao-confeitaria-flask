@@ -226,7 +226,7 @@ def gerenciar_ingredientes():
         q_normalizado = f"%{normalize_text(q)}%"
         query = query.filter(Ingrediente.nome_normalizado.ilike(q_normalizado))
         
-    paginacao = query.order_by(Ingrediente.nome).paginate(page=page, per_page=10, error_out=False)
+    paginacao = query.order_by(Ingrediente.nome).paginate(page=page, per_page=5, error_out=False)
     ingredientes_da_pagina = paginacao.items
     
     return render_template('ingredientes.html', 
