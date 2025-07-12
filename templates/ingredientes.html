@@ -10,7 +10,7 @@
         <div class="card-body">
             <form action="{{ url_for('gerenciar_ingredientes') }}" method="POST">
                 <div class="row g-3 mb-3">
-                    <div class="col-md-6"><label for="nome" class="form-label">Nome do Ingrediente</label><input type="text" class="form-control" name="nome" required></div>
+                    <div class="col-md-6"><label for="nome_ingrediente_input" class="form-label">Nome do Ingrediente</label><input type="text" class="form-control" id="nome_ingrediente_input" name="nome" required></div>
                     <div class="col-md-6"><label for="marca" class="form-label">Marca (Opcional)</label><input type="text" class="form-control" name="marca"></div>
                 </div>
                 <hr>
@@ -48,9 +48,12 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="lista-ingredientes">
         <div class="card-header d-flex justify-content-between align-items-center">Estoque Atual
-            <div class="input-group" style="width: 300px;"><span class="input-group-text">🔍</span><input type="text" id="caixaDeBusca" class="form-control" placeholder="Procurar ingrediente..."></div>
+            <div class="input-group" style="width: 300px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" id="caixaDeBusca" class="form-control" placeholder="Filtrar ingredientes na página...">
+            </div>
         </div>
         <div class="card-body">
             <table class="table table-striped table-hover align-middle">
@@ -75,89 +78,192 @@
                         <td>R$ {{ "%.4f"|format(ingrediente.preco_por_unidade())|replace('.', ',') }} / {{ ingrediente.unidade_medida }}</td>
                         <td><button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modal-compra-{{ ingrediente.id }}">Registrar Compra</button></td>
                         <td class="text-end">
-                            
-                            <button type="button" class="btn btn-danger btn-sm delete-btn" 
-                                    title="Excluir"
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#confirmDeleteModal"
+                            <button type="button" class="btn btn-danger btn-sm delete-btn" title="Excluir"
+                                    data-bs-toggle="modal" data-bs-target="#confirmDeleteModal"
                                     data-id="{{ ingrediente.id }}">
                                 <i class="bi bi-trash-fill"></i>
                             </button>
-                            
                             <a href="{{ url_for('historico_compras', ingrediente_id=ingrediente.id) }}" class="btn btn-info btn-sm" title="Histórico de Compras"><i class="bi bi-clock-history"></i></a>
                             <a href="{{ url_for('editar_ingrediente', ingrediente_id=ingrediente.id) }}" class="btn btn-warning btn-sm" title="Editar"><i class="bi bi-pencil-fill"></i></a>
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="5" class="text-center">Nenhum ingrediente cadastrado ainda.</td></tr>
+                    <tr><td colspan="5" class="text-center">Nenhum ingrediente encontrado.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
         
-        {% if paginacao %}
+        {% if paginacao and paginacao.pages > 1 %}
         <div class="card-footer d-flex justify-content-center">
-            </div>
+            <nav aria-label="Navegação das páginas de ingredientes">
+                <ul class="pagination mb-0">
+                    <li class="page-item {% if not paginacao.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('gerenciar_ingredientes', page=paginacao.prev_num, q=q or '') }}">Anterior</a>
+                    </li>
+                    {% for page_num in paginacao.iter_pages() %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == paginacao.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('gerenciar_ingredientes', page=page_num, q=q or '') }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not paginacao.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('gerenciar_ingredientes', page=paginacao.next_num, q=q or '') }}">Próxima</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
         {% endif %}
     </div>
 
     {% for ingrediente in ingredientes %}
-    <div class="modal fade" id="modal-compra-{{ ingrediente.id }}" ...>
+    <div class="modal fade" id="modal-compra-{{ ingrediente.id }}" tabindex="-1" aria-labelledby="modalLabel-{{ ingrediente.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalLabel-{{ ingrediente.id }}">Registrar Nova Compra para: {{ ingrediente.nome }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('adicionar_estoque', ingrediente_id=ingrediente.id) }}" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="preco_lote" class="form-label">Preço Total Pago pelo Lote (R$)</label>
+                            <input type="number" step="0.01" min="0" name="preco_lote" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="unidades_lote" class="form-label">Unidades Compradas no Lote</label>
+                            <input type="number" min="1" name="unidades_lote" class="form-control" value="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tamanho_unidade_lote" class="form-label">Tamanho por Unidade (em {{ ingrediente.unidade_medida }})</label>
+                            <input type="number" step="0.01" min="0" name="tamanho_unidade_lote" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Adicionar Estoque</button>
+                    </div>
+                </form>
+            </div>
         </div>
+    </div>
     {% endfor %}
 
     <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmar Exclusão</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body" id="modalBody">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmar Exclusão</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sim, Excluir</button>
+                </div>
             </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Sim, Excluir</button>
-          </div>
         </div>
-      </div>
     </div>
 
     <form id="deleteForm" method="POST" style="display: none;"></form>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Lógica da busca (Existente)
-            const caixaDeBusca = document.getElementById('caixaDeBusca');
-            if(caixaDeBusca) { /* ...código da busca... */ }
+{% endblock %}
 
-            // Lógica para o formulário dinâmico (Existente)
-            const tipoPrecoTotalRadio = document.getElementById('preco_total');
-            if(tipoPrecoTotalRadio) { /* ...código do formulário dinâmico... */ }
 
-            // --- LÓGICA DO MODAL DE EXCLUSÃO (ADICIONADA) ---
-            const deleteModal = document.getElementById('confirmDeleteModal');
-            const deleteForm = document.getElementById('deleteForm');
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
 
-            deleteModal.addEventListener('show.bs.modal', function (event) {
-                const button = event.relatedTarget;
-                const ingredienteId = button.getAttribute('data-id');
-                const modalBody = document.getElementById('modalBody');
+    // --- 1. FOCO AUTOMÁTICO NO CAMPO 'NOME' ---
+    if (urlParams.has('focus') && urlParams.get('focus') === 'nome') {
+        const nomeInput = document.getElementById('nome_ingrediente_input');
+        if (nomeInput) {
+            nomeInput.focus();
+            // Limpa o parâmetro da URL para não focar novamente ao recarregar
+            const cleanUrl = window.location.pathname + window.location.search.replace(/&?focus=nome/, '');
+            window.history.replaceState({}, document.title, cleanUrl);
+        }
+    }
 
-                // Define a URL de action do formulário oculto
-                const actionUrl = `/ingrediente/delete/${ingredienteId}`;
-                deleteForm.setAttribute('action', actionUrl);
-                
-                // Define a mensagem padrão. Você pode adicionar uma verificação se o ingrediente
-                // estiver em uso aqui, se necessário, passando um atributo 'data-is-in-use' no botão.
-                modalBody.innerHTML = "<strong>Atenção!</strong> Ao excluir um ingrediente, todo o seu histórico de compras será perdido e ele será removido de todas as fichas técnicas. Esta ação não pode ser desfeita.<br><br>Você tem certeza que deseja continuar?";
-            });
+    // --- 2. BUSCA EM TEMPO REAL (FILTRA A PÁGINA ATUAL) ---
+    const caixaDeBusca = document.getElementById('caixaDeBusca');
+    const tabelaIngredientesBody = document.getElementById('tabela-ingredientes');
+    if (caixaDeBusca && tabelaIngredientesBody) {
+        const linhasIngredientes = tabelaIngredientesBody.getElementsByTagName('tr');
+        caixaDeBusca.addEventListener('keyup', function() {
+            const termoBusca = this.value.toLowerCase();
+            for (let i = 0; i < linhasIngredientes.length; i++) {
+                const celulaNome = linhasIngredientes[i].getElementsByTagName('td')[0];
+                if (celulaNome) {
+                    const nomeIngrediente = celulaNome.textContent.toLowerCase();
+                    if (nomeIngrediente.includes(termoBusca)) {
+                        linhasIngredientes[i].style.display = '';
+                    } else {
+                        linhasIngredientes[i].style.display = 'none';
+                    }
+                }
+            }
+        });
+    }
 
-            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    // --- 3. MANTER POSIÇÃO DA ROLAGEM NA PAGINAÇÃO ---
+    const listaIngredientes = document.getElementById('lista-ingredientes');
+    if (urlParams.has('page') && parseInt(url_for.get('page')) > 1) {
+        if (listaIngredientes) {
+            listaIngredientes.scrollIntoView({ behavior: 'auto', block: 'start' });
+        }
+    }
+
+    // --- 4. LÓGICA PARA ATIVAR TOOLTIPS ---
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // --- 5. LÓGICA PARA O FORMULÁRIO DINÂMICO DE PREÇOS ---
+    const tipoPrecoRadios = document.querySelectorAll('input[name="tipo_preco"]');
+    const unidadesCompradasInput = document.getElementById('unidades_compradas');
+    const labelTamanhoUnidade = document.getElementById('label_tamanho_unidade');
+
+    function atualizarFormulario() {
+        if (document.getElementById('preco_unitario').checked) {
+            labelTamanhoUnidade.textContent = 'Tamanho por Unidade';
+        } else { // preco_total
+            labelTamanhoUnidade.textContent = 'Tamanho Total do Lote';
+        }
+        unidadesCompradasInput.disabled = false; // Garante que o campo esteja sempre habilitado
+    }
+    
+    if (tipoPrecoRadios.length) {
+        tipoPrecoRadios.forEach(radio => radio.addEventListener('change', atualizarFormulario));
+        atualizarFormulario();
+    }
+
+    // --- 6. LÓGICA DO MODAL DE EXCLUSÃO ---
+    const deleteModal = document.getElementById('confirmDeleteModal');
+    const deleteForm = document.getElementById('deleteForm');
+
+    if(deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const ingredienteId = button.getAttribute('data-id');
+            const modalBody = document.getElementById('modalBody');
+            const actionUrl = `/ingrediente/delete/${ingredienteId}`;
+            deleteForm.setAttribute('action', actionUrl);
+            modalBody.innerHTML = "<strong>Atenção!</strong> Ao excluir um ingrediente, todo o seu histórico de compras será perdido e ele será removido de todas as fichas técnicas. Esta ação não pode ser desfeita.<br><br>Você tem certeza que deseja continuar?";
+        });
+
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        if(confirmDeleteBtn) {
             confirmDeleteBtn.addEventListener('click', function() {
                 deleteForm.submit();
             });
-            
-        });
-    </script>
+        }
+    }
+});
+</script>
 {% endblock %}

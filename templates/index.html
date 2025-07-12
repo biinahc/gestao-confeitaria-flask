@@ -3,159 +3,133 @@
 {% block title %}Painel Principal{% endblock %}
 
 {% block content %}
-    <div class="container-fluid py-5" style="background-color: #e3d1e68f;">
-        <div class="row justify-content-center text-center mb-4">
+    <div class="container-fluid py-2" style="background-color: #e3d1e68f;">
+        
+        <div class="row justify-content-center text-center mb-3">
             <div class="d-flex align-items-center">
-    <img src="{{ url_for('static', filename='images/logo_segundo.png') }}" alt="Logo Confeitando com Artes"
-         class="img-fluid me-3" style="max-width: 150px; border-radius: 50%;">
-    <div class="text-center flex-grow-1">
-        <h1 class="display-5">Bem-vinda, Edneuza Silva! ❤️</h1>
-        <p class="lead text-muted">Seu sistema de gestão para a Confeitando com Arte</p>
-    </div>
-</div>
-
-        
-  <div class="container" style="max-width: 1440px;">
-
-    <div class="row justify-content-center">
-        <div class="col-lg-2 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
-                    <i class="bi bi-box-seam-fill text-primary mb-2" style="font-size: 2.5em;"></i>
-                    <h5 class="card-title">Ingredientes</h5>
-                    <p class="card-text small text-muted">Controle seu estoque de matérias-primas.</p>
-                    <a href="{{ url_for('gerenciar_ingredientes') }}" class="btn btn-primary btn-sm mt-auto">Acessar</a>
+                <img src="{{ url_for('static', filename='images/logo_segundo.png') }}" alt="Logo Confeitando com Artes"
+                     class="img-fluid me-3" style="max-width: 120px; border-radius: 50%;">
+                <div class="text-center flex-grow-1">
+                    <h2 class="display-6">Bem-vinda, Edneuza Silva! ❤️</h2>
+                    <p class="text-muted">Seu sistema de gestão para a Confeitando com Arte</p>
                 </div>
             </div>
         </div>
         
-        <div class="col-lg-2 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
-                    <i class="bi bi-journal-text text-info mb-2" style="font-size: 2.5em;"></i>
-                    <h5 class="card-title">Fichas Técnicas</h5>
-                    <p class="card-text small text-muted">Crie e edite suas receitas detalhadas.</p>
-                    <a href="{{ url_for('gerenciar_fichas_tecnicas') }}" class="btn btn-info btn-sm mt-auto">Acessar</a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-2 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
-                    <i class="bi bi-rulers text-warning mb-2" style="font-size: 2.5em;"></i>
-                    <h5 class="card-title">Formas</h5>
-                    <p class="card-text small text-muted">Cadastre e organize suas formas de bolo.</p>
-                    <a href="{{ url_for('gerenciar_formas') }}" class="btn btn-warning btn-sm mt-auto">Acessar</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-2 col-md-6 mb-4">
-    <div class="card shadow-sm h-100">
-        <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
-            <i class="bi bi-card-checklist text-danger mb-2" style="font-size: 2.5em;"></i>
-            <h5 class="card-title">Lista de Compras</h5>
-            <p class="card-text small text-muted">Gere sua lista de compras com base no estoque baixo.</p>
-            <a href="{{ url_for('lista_de_compras') }}" class="btn btn-danger btn-sm mt-auto">Acessar</a>
-        </div>
-    </div>
-</div>
-
-        <div class="col-lg-2 col-md-6 mb-4">
-    <div class="card shadow-sm h-100">
-        <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
-            <i class="bi bi-cart-fill text-success mb-2" style="font-size: 2.5em;"></i>
-            <h5 class="card-title">Vendas </h5>
-            <p class="card-text small text-muted">
-                Informe suas vendas, acompanhe seus lucros e custos
-            </p>
-            <a href="{{ url_for('gerenciar_vendas') }}" class="btn btn-success btn-sm mt-auto">Acessar</a>
-        </div>
-    </div>
-</div>
-<div class="col-lg-2 col-md-6 mb-4">
-    <div class="card shadow-sm h-100">
-        <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
-            <i class="bi bi-file-earmark-text text-secondary mb-2" style="font-size: 2.5em;"></i>
-            <h5 class="card-title">Orçamento</h5>
-            <p class="card-text small text-muted">
-                Informe suas vendas, acompanhe seus lucros e custos
-            </p>
-            <a href="{{ url_for('gerar_pdf_orcamento') }}" class="btn btn-secondary btn-sm mt-auto">Acessar</a>
-        </div>
-    </div>
-</div>
-
-
-    </div>
-
-</div>
-
-            
-        </div>
-
-        <div class="row g-4">
-            
-            <div class="col-lg-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-warning bg-opacity-25">
-                        <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Alertas de Estoque</h5>
+        <div class="container" style="max-width: 1440px;">
+            <div class="row justify-content-center">
+                <div class="col-lg-2 col-md-4 col-6 mb-3">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-2">
+                            <i class="bi bi-box-seam-fill text-primary mb-2" style="font-size: 2.2em;"></i>
+                            <h5 class="card-title fs-6">Ingredientes</h5>
+                            <p class="card-text small text-muted" style="line-height: 1.2;">Controle seu estoque de matérias-primas.</p>
+                            <a href="{{ url_for('gerenciar_ingredientes') }}" class="btn btn-primary btn-sm mt-auto stretched-link">Acessar</a>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        {% if alertas_estoque %}
-                            <p class="text-muted small">Os seguintes itens precisam de reposição:</p>
-                            <ul class="list-group list-group-flush">
-                                {% for ingrediente in alertas_estoque %}
-                                    {% set cor_alerta = 'warning' %} {% if (ingrediente.unidade_medida in ['g', 'ml'] and ingrediente.quantidade_estoque <= 100) or 
-                                          (ingrediente.unidade_medida == 'unid' and ingrediente.quantidade_estoque <= 5) %}
-                                        {% set cor_alerta = 'danger' %} {% endif %}
-
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <i class="bi bi-circle-fill text-{{ cor_alerta }} me-2"></i>
-                                            {{ ingrediente.nome }}
-                                        </div>
-                                        <span class="badge bg-{{ cor_alerta }} rounded-pill">
-                                            {{ ingrediente.quantidade_estoque|round(1) }} {{ ingrediente.unidade_medida }}
-                                        </span>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        {% else %}
-                            <div class="text-center text-success p-3">
-                                <i class="bi bi-check-circle-fill fs-2"></i>
-                                <p class="h5 mt-2">Estoque em dia!</p>
-                                <p class="mb-0">Nenhum item com nível de estoque baixo.</p>
-                            </div>
-                        {% endif %}
+                </div>
+                <div class="col-lg-2 col-md-4 col-6 mb-3">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-2">
+                            <i class="bi bi-journal-text text-info mb-2" style="font-size: 2.2em;"></i>
+                            <h5 class="card-title fs-6">Fichas Técnicas</h5>
+                            <p class="card-text small text-muted" style="line-height: 1.2;">Crie e edite suas receitas detalhadas.</p>
+                            <a href="{{ url_for('gerenciar_fichas_tecnicas') }}" class="btn btn-info btn-sm mt-auto stretched-link">Acessar</a>
+                        </div>
                     </div>
-                    <div class="card-footer text-center bg-light">
-                        <a href="{{ url_for('gerenciar_ingredientes') }}" class="btn btn-outline-secondary btn-sm">Ver Estoque Completo</a>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6 mb-3">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-2">
+                            <i class="bi bi-rulers text-warning mb-2" style="font-size: 2.2em;"></i>
+                            <h5 class="card-title fs-6">Formas</h5>
+                            <p class="card-text small text-muted" style="line-height: 1.2;">Cadastre e organize suas formas de bolo.</p>
+                            <a href="{{ url_for('gerenciar_formas') }}" class="btn btn-warning btn-sm mt-auto stretched-link">Acessar</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6 mb-3">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-2">
+                            <i class="bi bi-card-checklist text-danger mb-2" style="font-size: 2.2em;"></i>
+                            <h5 class="card-title fs-6">Lista de Compras</h5>
+                            <p class="card-text small text-muted" style="line-height: 1.2;">Gere sua lista com base no estoque baixo.</p>
+                            <a href="{{ url_for('lista_de_compras') }}" class="btn btn-danger btn-sm mt-auto stretched-link">Acessar</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6 mb-3">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-2">
+                            <i class="bi bi-cart-fill text-success mb-2" style="font-size: 2.2em;"></i>
+                            <h5 class="card-title fs-6">Vendas</h5>
+                            <p class="card-text small text-muted" style="line-height: 1.2;">Informe suas vendas, lucros e custos.</p>
+                            <a href="{{ url_for('gerenciar_vendas') }}" class="btn btn-success btn-sm mt-auto stretched-link">Acessar</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6 mb-3">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-2">
+                            <i class="bi bi-file-earmark-text text-secondary mb-2" style="font-size: 2.2em;"></i>
+                            <h5 class="card-title fs-6">Orçamento</h5>
+                            <p class="card-text small text-muted" style="line-height: 1.2;">Gere e envie orçamentos profissionais.</p>
+                            <a href="{{ url_for('novo_orcamento') }}" class="btn btn-secondary btn-sm mt-auto stretched-link">Acessar</a>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-lg-8">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header">
-                        <i class="bi bi-bar-chart-fill text-muted me-2"></i> Top 10 Ingredientes em Estoque
-                    </div>
-                    <div class="card-body" style="min-height: 400px; position: relative;">
-                        {% if labels_grafico and dados_grafico %}
-                            <canvas id="estoqueChart"
-                                    data-labels='{{ labels_grafico|tojson|safe }}'
-                                    data-dados='{{ dados_grafico|tojson|safe }}'>
-                            </canvas>
-                        {% else %}
-                            <div class="d-flex align-items-center justify-content-center h-100">
-                                <p class="text-muted">Cadastre ingredientes com estoque para ver o gráfico aqui.</p>
-                            </div>
+            <div class="row g-3 mt-2">
+                <div class="col-lg-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-warning bg-opacity-25 py-2"> <h6 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Alertas de Estoque</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if paginacao_alertas and paginacao_alertas.items %}
+                                <ul class="list-group list-group-flush">
+                                    {% for ingrediente in paginacao_alertas.items %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                            <div><i class="bi bi-circle-fill text-{{ 'danger' if ingrediente.quantidade_estoque <= 100 else 'warning' }} me-2" style="font-size: 0.6em;"></i>{{ ingrediente.nome }}</div>
+                                            <span class="badge bg-{{ 'danger' if ingrediente.quantidade_estoque <= 100 else 'warning' }} rounded-pill">{{ ingrediente.quantidade_estoque|round(1) }} {{ ingrediente.unidade_medida }}</span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <div class="text-center text-success p-3">
+                                    <i class="bi bi-check-circle-fill fs-2"></i>
+                                    <p class="h5 mt-2">Estoque em dia!</p>
+                                    <p class="mb-0 small">Nenhum item com nível de estoque baixo.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% if paginacao_alertas and paginacao_alertas.pages > 1 %}
+                        <div class="card-footer d-flex justify-content-center py-1 bg-light">
+                             </div>
                         {% endif %}
                     </div>
                 </div>
+
+                <div class="col-lg-8">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header py-2"> <h6 class="mb-0"><i class="bi bi-bar-chart-fill text-muted me-2"></i>Top 10 Ingredientes em Estoque</h6>
+                        </div>
+                        <div class="card-body" style="min-height: 350px; position: relative;">
+                            {% if labels_grafico and dados_grafico %}
+                                <canvas id="estoqueChart" data-labels='{{ labels_grafico|tojson|safe }}' data-dados='{{ dados_grafico|tojson|safe }}'></canvas>
+                            {% else %}
+                                <div class="d-flex align-items-center justify-content-center h-100">
+                                    <p class="text-muted">Cadastre ingredientes com estoque para ver o gráfico aqui.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+{% endblock %}
+{% block scripts %}
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
