@@ -14,26 +14,30 @@
                     <div class="col-md-6"><label for="marca" class="form-label">Marca (Opcional)</label><input type="text" class="form-control" name="marca"></div>
                 </div>
                 <hr>
+                <p class="text-muted small mt-3">Preencha os detalhes da sua compra. <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" 
+                   title="Exemplo Ovos: Preço do Item=22.50 (preço da cartela), Qtd. de Itens=1, Conteúdo por Item=30, Medida=unid. Exemplo Açúcar: Preço do Item=5.50 (preço do pacote), Qtd. de Itens=2, Conteúdo por Item=1000, Medida=g.">
+                   Ver exemplos de como preencher.
+                </a></p>
                 <p class="text-muted small mt-3">Preencha os detalhes da sua compra. Passe o mouse sobre as opções de preço para ver a dica.</p>
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4">
                         <label class="form-label">Como informar o preço?</label>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="tipo_preco" id="preco_total" value="total" checked>
-                            <label class="form-check-label" for="preco_total" data-bs-toggle="tooltip" data-bs-placement="right" title="Use para um lote de itens. Ex: Pagou R$ 20,00 por uma cartela com 30 ovos.">
+                            <label class="form-check-label" for="preco_total" data-bs-toggle="tooltip" data-bs-placement="right" title="Exemplo Ovos: Preço do Item=22.50 (preço da cartela), Qtd. de Itens=1, Conteúdo por Item=30, Medida=unid.">
                                 Preço Total da Compra
                             </label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="tipo_preco" id="preco_unitario" value="unitario">
-                            <label class="form-check-label" for="preco_unitario" data-bs-toggle="tooltip" data-bs-placement="right" title="Use para vários itens iguais. Ex: Pagou R$ 5,30 em cada um dos 10 pacotes de açúcar.">
+                            <label class="form-check-label" for="preco_unitario" data-bs-toggle="tooltip" data-bs-placement="right" title="Exemplo Açúcar: Preço do Item=5.50 (preço do pacote), Qtd. de Itens=2, Conteúdo por Item=1000, Medida=g.">
                                 Preço por Unidade
                             </label>
                         </div>
                     </div>
-                    <div class="col-md-2"><label for="preco" class="form-label">Preço (R$)</label><input type="number" step="0.01" min="0" class="form-control" name="preco" required></div>
-                    <div class="col-md-2"><label for="unidades_compradas" class="form-label">Unidades Compradas</label><input type="number" min="1" class="form-control" id="unidades_compradas" name="unidades_compradas" value="1" required></div>
-                    <div class="col-md-2"><label for="tamanho_unidade" class="form-label" id="label_tamanho_unidade">Tamanho por Unidade</label><input type="number" step="0.01" min="0" class="form-control" name="tamanho_unidade" required></div>
+                    <div class="col-md-2"><label for="preco" class="form-label">Preço do Item (R$)</label><input type="number" step="0.01" min="0" class="form-control" name="preco" required></div>
+                    <div class="col-md-2"><label for="unidades_compradas" class="form-label">Qtd. de Itens Comprados</label><input type="number" min="1" class="form-control" id="unidades_compradas" name="unidades_compradas" value="1" required></div>
+                    <div class="col-md-2"><label for="tamanho_unidade" class="form-label" id="label_tamanho_unidade">Conteúdo por Item</label><input type="number" step="0.01" min="0" class="form-control" name="tamanho_unidade" required></div>
                     <div class="col-md-2">
                         <label for="unidade_medida" class="form-label">Unidade de Medida</label>
                         <select class="form-select" name="unidade_medida" required>
