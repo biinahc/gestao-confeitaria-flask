@@ -938,7 +938,35 @@ def editar_forma(id):
         db.session.commit()
         flash("Forma atualizada com sucesso!", "success")
     return redirect(url_for("gerenciar_formas"))
+@app.route('/setup-inicial-com-usuarios-12345')
+def setup_inicial():
+    try:
+        with app.app_context():
+            # O comando 'flask db upgrade' no build já deve ter criado as tabelas.
+            # Esta rota agora foca em criar os usuários.
 
+            usuarios_para_criar = [
+                {'username': 'sabrina', 'password': '994507111'},
+                {'username': 'neuza', 'password': '280588'}
+            ]
+
+            mensagens = []
+            for user_info in usuarios_para_criar:
+                # Verifica se o usuário já existe antes de criar
+                if not User.query.filter_by(username=user_info['username']).first():
+                    novo_usuario = User(username=user_info['username'])
+                    novo_usuario.set_password(user_info['password'])
+                    db.session.add(novo_usuario)
+                    mensagens.append(f"Usuário '{user_info['username']}' criado com sucesso.")
+                else:
+                    mensagens.append(f"Usuário '{user_info['username']}' já existe.")
+
+            db.session.commit()
+
+            return f"<h1>Setup Concluído!</h1><ul><li>{'</li><li>'.join(mensagens)}</li></ul>"
+
+    except Exception as e:
+        return f"<h1>Erro no Setup</h1><p>{str(e)}</p>"
 
 if __name__ == "__main__":
     app.run(debug=True)
