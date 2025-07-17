@@ -96,6 +96,18 @@
                     {% endfor %}
                 </tbody>
             </table>
+              {% if not ingredientes %}
+            <div class="text-center p-4">
+                <p class="text-muted">
+                    {% if q %}
+                        Nenhum ingrediente encontrado para a busca: <strong>"{{ q }}"</strong>.
+                    {% else %}
+                        Ainda não há ingredientes cadastrados. Comece adicionando um no formulário acima!
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+    
         </div>
         
         {% if paginacao and paginacao.pages > 1 %}

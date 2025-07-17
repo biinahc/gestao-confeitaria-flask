@@ -201,13 +201,20 @@ def normalize_text(text):
 @app.route("/ingredientes", methods=["GET", "POST"])
 @login_required
 def gerenciar_ingredientes():
+    # --- LÓGICA POST (CADASTRO) ---
     if request.method == "POST":
         nome_original = request.form.get("nome", "").strip()
 
+        # Validação para evitar nomes vazios
+        if not nome_original:
+            flash("Erro: O nome do ingrediente não pode ser vazio.", "danger")
+            return redirect(url_for("gerenciar_ingredientes"))
+
         # 1. NORMALIZA O NOME PARA VALIDAÇÃO
+        # Supondo que normalize_text remove acentos e converte para minúsculas
         nome_normalizado = normalize_text(nome_original)
 
-        # 2. VALIDAÇÃO MELHORADA (IGNORA ACENTOS E MAIÚSCULAS/MINÚSCULAS)
+        # 2. VALIDAÇÃO DE DUPLICIDADE
         if Ingrediente.query.filter(
             Ingrediente.nome_normalizado == nome_normalizado
         ).first():
@@ -216,24 +223,30 @@ def gerenciar_ingredientes():
             )
             return redirect(url_for("gerenciar_ingredientes", focus="nome"))
 
-        # --- Lógica de negócio (mantida como a sua original, mas mais segura com .get()) ---
-        tipo_preco = request.form.get("tipo_preco")
-        preco_informado = float(request.form.get("preco", 0) or 0)
-        unidades_compradas = int(request.form.get("unidades_compradas", 1) or 1)
-        tamanho_unidade = float(request.form.get("tamanho_unidade", 0) or 0)
+        # --- Lógica de negócio ---
+        try:
+            tipo_preco = request.form.get("tipo_preco")
+            preco_informado = float(request.form.get("preco") or 0)
+            unidades_compradas = int(request.form.get("unidades_compradas") or 1)
+            tamanho_unidade = float(request.form.get("tamanho_unidade") or 0)
+        except (ValueError, TypeError):
+            flash("Erro: Verifique se os valores numéricos estão corretos.", "danger")
+            return redirect(url_for("gerenciar_ingredientes"))
+
 
         if tipo_preco == "total":
             preco_total_pago = preco_informado
         else:  # tipo_preco == 'unitario'
             preco_total_pago = preco_informado * unidades_compradas
 
+        # Evita divisão por zero
         estoque_inicial = tamanho_unidade * unidades_compradas
         custo_inicial = preco_total_pago / estoque_inicial if estoque_inicial > 0 else 0
 
-        # 3. SALVA O NOME ORIGINAL E O NOME NORMALIZADO
+        # 3. SALVA O NOVO INGREDIENTE E A COMPRA INICIAL
         novo_ingrediente = Ingrediente(
             nome=nome_original,
-            nome_normalizado=nome_normalizado,  # Campo novo sendo salvo
+            nome_normalizado=nome_normalizado,
             marca=request.form.get("marca"),
             unidade_medida=request.form.get("unidade_medida"),
             quantidade_estoque=estoque_inicial,
@@ -252,13 +265,11 @@ def gerenciar_ingredientes():
         db.session.commit()
 
         flash(f'Ingrediente "{nome_original}" cadastrado com sucesso!', "success")
-
-        # 4. REDIRECIONA COM PARÂMETRO DE FOCO
         return redirect(url_for("gerenciar_ingredientes", focus="nome"))
 
-    # --- Lógica para GET (exibição da página) ---
+    # --- LÓGICA GET (EXIBIÇÃO DA PÁGINA) ---
     page = request.args.get("page", 1, type=int)
-    q = request.args.get("q", "", type=str)
+    q = request.args.get("q", "").strip() # .strip() para remover espaços extras
 
     query = Ingrediente.query
 
@@ -267,14 +278,15 @@ def gerenciar_ingredientes():
         q_normalizado = f"%{normalize_text(q)}%"
         query = query.filter(Ingrediente.nome_normalizado.ilike(q_normalizado))
 
+    # A paginação em si está correta. Mantenha o per_page que desejar.
     paginacao = query.order_by(Ingrediente.nome).paginate(
         page=page, per_page=5, error_out=False
     )
-    ingredientes_da_pagina = paginacao.items
-
+    
+    # Passamos a lista de ingredientes e o objeto de paginação para o template
     return render_template(
         "ingredientes.html",
-        ingredientes=ingredientes_da_pagina,
+        ingredientes=paginacao.items,
         paginacao=paginacao,
         q=q,
     )
